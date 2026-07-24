@@ -57,5 +57,25 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
     implementation(libs.coil.compose)
-    implementation(libs.androidx.navigation.compose)
+    implementation("androidx.navigation:navigation-compose:2.9.0")
+
+    // Browser (OAuth login)
+    implementation("androidx.browser:browser:1.8.0")
+
+
+
+// OkHttp
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+// Logging (Debugging)
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+// Secure token storage
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    implementation(platform(libs.androidx.compose.bom))
+    implementation("androidx.compose.foundation:foundation")
+    implementation(libs.androidx.compose.material3)
 }

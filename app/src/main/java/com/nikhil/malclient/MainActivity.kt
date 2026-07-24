@@ -1,86 +1,145 @@
 package com.nikhil.malclient
 
-import com.nikhil.malclient.ui.screens.SearchScreen
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.nikhil.malclient.ui.theme.MALClientTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.lifecycleScope
 import com.nikhil.malclient.api.ApiConstants
+import com.nikhil.malclient.auth.AuthRepository
+import com.nikhil.malclient.auth.OAuthManager
+import com.nikhil.malclient.auth.TokenManager
 import com.nikhil.malclient.navigation.AppNavigation
+import com.nikhil.malclient.ui.theme.MALClientTheme
+import kotlinx.coroutines.launch
+import com.nikhil.malclient.user.UserRepository
+import com.nikhil.malclient.user.UserSession
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var oauthManager: OAuthManager
+    private lateinit var tokenManager: TokenManager
+    private val authRepository = AuthRepository()
+    private val userRepository = UserRepository()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        oauthManager = OAuthManager(this)
+        tokenManager = TokenManager(this)
+
+        handleOAuthCallback(intent)
+
         enableEdgeToEdge()
+
+        if (tokenManager.isLoggedIn()) {
+            UserSession.username = tokenManager.getUsername()
+            UserSession.picture = tokenManager.getPicture()
+
+            Log.d("MAL_PROFILE", "Stored username = ${tokenManager.getUsername()}")
+        }
+
         setContent {
             MALClientTheme {
                 AppNavigation(
-                    clientId = ApiConstants.CLIENT_ID
+                    clientId = ApiConstants.CLIENT_ID,
+                    startDestination = if (tokenManager.isLoggedIn()) "home" else "login"
                 )
             }
         }
     }
-}
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun HomeScreen() {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text("MAL Client")
-                }
-            )
-        }
-    ) { innerPadding ->
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentAlignment = Alignment.Center
-
-        ) {
-
-            Text(
-                text = "Welcome to MAL Client",
-                fontSize = 24.sp
-            )
-        }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleOAuthCallback(intent)
     }
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+    private fun handleOAuthCallback(intent: Intent?) {
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    MALClientTheme {
-        Greeting("Android")
+        val data: Uri? = intent?.data
+
+        if (data?.scheme == "malclient" && data.host == "callback") {
+
+            val code = data.getQueryParameter("code")
+
+            if (code == null) {
+                Toast.makeText(this, "Authorization failed", Toast.LENGTH_LONG).show()
+                return
+            }
+
+            val verifier = oauthManager.getCodeVerifier()
+
+            if (verifier == null) {
+                throw RuntimeException("Verifier = $verifier")
+                return
+            }
+
+            lifecycleScope.launch {
+                val result = authRepository.exchangeCodeForToken(
+                    code,
+                    verifier
+                )
+
+                result.onSuccess { token ->
+
+                    tokenManager.saveTokens(
+                        token.access_token,
+                        token.refresh_token
+                    )
+
+                    oauthManager.clearCodeVerifier()
+
+                    val response = userRepository.getMyProfile(token.access_token)
+
+                    if (response.isSuccessful && response.body() != null) {
+
+                        UserSession.username = response.body()!!.name
+                        UserSession.picture = response.body()!!.picture
+
+                        tokenManager.saveUserProfile(
+                            UserSession.username,
+                            UserSession.picture
+                        )
+
+                        Log.d("MAL_PROFILE", "Saved username = ${tokenManager.getUsername()}")
+
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Welcome ${UserSession.username}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+
+
+                    Log.d("MAL_AUTH", "Access Token: ${token.access_token}")
+
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Login Successful!",
+                        Toast.LENGTH_LONG
+                    ).show()
+
+                    // Later we'll navigate directly to the home/search screen.
+                }
+
+                result.onFailure { error ->
+
+                    error.printStackTrace()
+
+                    Log.e("MAL_AUTH", "Exception Class: ${error::class.java.name}")
+                    Log.e("MAL_AUTH", "Exception: ", error)
+
+                    Toast.makeText(
+                        this@MainActivity,
+                        error.toString(),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
     }
 }

@@ -19,24 +19,50 @@ class AnimeViewModel : ViewModel() {
     private val _selectedAnime = MutableStateFlow<Anime?>(null)
     val selectedAnime: StateFlow<Anime?> = _selectedAnime
 
-    fun searchAnime(clientId: String, query: String) {
+    fun searchAnime(token: String, query: String) {
         viewModelScope.launch {
-            val response = repository.searchAnime(clientId, query)
+            val response = repository.searchAnime(token, query)
             if (response.isSuccessful) {
                 _anime.value = response.body()
             }
         }
     }
-    fun loadAnimeDetails(clientId: String, animeId: String) {
+    fun loadAnimeDetails(token: String, animeId: String)  {
         viewModelScope.launch {
-            val response = repository.getAnimeDetails(clientId, animeId)
-
+            val response = repository.getAnimeDetails(token, animeId)
             if (response.isSuccessful) {
                 _selectedAnime.value = response.body()
             } else {
                 Log.e(
                     "MAL_API",
                     "Details Error: ${response.code()} ${response.message()}"
+                )
+            }
+        }
+    }
+
+    fun addAnimeToList(
+        token: String,
+        animeId: String
+    ) {
+
+        viewModelScope.launch {
+
+            val response = repository.addAnimeToList(
+                token = token,
+                animeId = animeId,
+                status = "watching"
+            )
+
+            if (response.isSuccessful) {
+                Log.d(
+                    "MAL_LIST",
+                    "Anime added successfully"
+                )
+            } else {
+                Log.e(
+                    "MAL_LIST",
+                    "Failed: ${response.code()} ${response.message()}"
                 )
             }
         }

@@ -15,7 +15,12 @@ data class Anime(
     val mean: Double?,
     val num_episodes: Int?,
     val status: String?,
-    val synopsis: String?
+    val synopsis: String?,
+    val genres: List<Genre>?
+)
+
+data class Genre(
+    val name: String
 )
 
 data class MainPicture(
