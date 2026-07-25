@@ -10,6 +10,8 @@ import retrofit2.http.Header
 import retrofit2.http.Query
 import retrofit2.http.PUT
 import com.nikhil.malclient.model.AnimeListResponse
+import retrofit2.http.FormUrlEncoded
+import retrofit2.http.Field
 
 
 interface AnimeApiService {
@@ -41,7 +43,15 @@ interface AnimeApiService {
     suspend fun getMyAnimeList(
         @Header("Authorization") token: String,
         @Query("status") status: String? = null,
-        @Query("fields") fields: String = "list_status",
+        @Query("fields") fields: String = "list_status,num_episodes,start_date,end_date",
         @Query("limit") limit: Int = 100
     ): Response<AnimeListResponse>
+
+    @FormUrlEncoded
+    @PUT("anime/{anime_id}/my_list_status")
+    suspend fun updateEpisodeProgress(
+        @Header("Authorization") token: String,
+        @Path("anime_id") animeId: String,
+        @Field("num_watched_episodes") episodes: Int
+    ): Response<Unit>
 }

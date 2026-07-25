@@ -4,6 +4,7 @@ import com.nikhil.malclient.api.RetrofitClient
 import com.nikhil.malclient.model.AnimeResponse
 import retrofit2.Response
 import com.nikhil.malclient.model.AnimeListResponse
+import com.nikhil.malclient.model.AniListResponse
 
 class AnimeRepository {
 
@@ -52,5 +53,43 @@ class AnimeRepository {
             token = "Bearer $token",
             status = status
         )
+    }
+
+
+    suspend fun updateEpisodeProgress(
+        token: String,
+        animeId: String,
+        episodes: Int
+    ): Response<Unit> {
+
+        return RetrofitClient.animeApi.updateEpisodeProgress(
+            token = "Bearer $token",
+            animeId = animeId,
+            episodes = episodes
+        )
+    }
+
+    suspend fun getAniListEpisodes(
+        malId: Int
+    ): Response<AniListResponse> {
+
+        val query = """
+    query {
+        Media(idMal: $malId, type: ANIME) {
+            episodes
+            nextAiringEpisode {
+                episode
+            }
+        }
+    }
+""".trimIndent()
+
+
+        return RetrofitClient.aniListApi.getAnimeInfo(
+            body = mapOf(
+                "query" to query
+            )
+        )
+
     }
 }

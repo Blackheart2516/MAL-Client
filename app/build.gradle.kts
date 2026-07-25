@@ -38,7 +38,7 @@ android {
 }
 
 dependencies {
-    implementation(platform(libs.androidx.compose.bom))
+
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
@@ -58,6 +58,7 @@ dependencies {
     implementation(libs.retrofit.gson)
     implementation(libs.coil.compose)
     implementation("androidx.navigation:navigation-compose:2.9.0")
+    implementation("androidx.compose.material:material:1.8.0")
 
     // Browser (OAuth login)
     implementation("androidx.browser:browser:1.8.0")
