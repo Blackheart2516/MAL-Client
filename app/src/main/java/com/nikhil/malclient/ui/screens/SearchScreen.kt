@@ -12,6 +12,7 @@ import androidx.compose.runtime.collectAsState
 import com.nikhil.malclient.ui.components.AnimeCard
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import android.util.Log
 
 @Composable
 fun SearchScreen(
@@ -19,15 +20,43 @@ fun SearchScreen(
     navController: androidx.navigation.NavController
 ){
     val viewModel: AnimeSearchViewModel = viewModel()
+
+    LaunchedEffect(Unit) {
+
+        viewModel.loadUserAnimeList(token)
+
+    }
     val animeList by viewModel.animeList.collectAsState()
+    Log.d(
+        "SEARCH_SIZE",
+        "results = ${animeList.size}"
+    )
+    val myList by viewModel.userAnimeList.collectAsState()
     var query by remember {
         mutableStateOf("")
     }
+    LaunchedEffect(query) {
+
+        if (query.length >= 3) {
+
+            viewModel.search(
+                token = token,
+                query = query
+            )
+
+        }
+
+    }
+
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(
+                top = 40.dp,
+                start = 8.dp,
+                end = 8.dp
+            ),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
@@ -62,7 +91,9 @@ fun SearchScreen(
         }
         Spacer(modifier = Modifier.height(20.dp))
 
-        LazyColumn {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth()
+        ) {
 
             items(animeList) { anime ->
 
@@ -70,7 +101,8 @@ fun SearchScreen(
                     anime = anime,
                     onClick = {
                         navController.navigate("details/${anime.id}")
-                    }
+                    },
+                    userAnimeList = myList
                 )
             }
         }

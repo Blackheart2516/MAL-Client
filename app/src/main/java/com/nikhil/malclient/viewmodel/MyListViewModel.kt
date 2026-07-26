@@ -141,13 +141,14 @@ class MyListViewModel : ViewModel() {
 
         viewModelScope.launch {
 
+            Log.d(
+                "LOAD_TEST",
+                "loadMyList called status=$status"
+            )
 
             val response = repository.getMyAnimeList(
-
                 token,
-
                 status
-
             )
 
 
@@ -155,6 +156,37 @@ class MyListViewModel : ViewModel() {
 
 
                 val data = response.body()
+
+
+
+
+                val sortedData = data?.copy(
+
+                    data = data.data.sortedByDescending {
+
+                        it.list_status.updated_at ?: ""
+
+                    }
+
+                )
+
+                sortedData?.data?.take(5)?.forEach {
+
+                    Log.d(
+                        "SORTED_TEST",
+                        "${it.node.title} -> ${it.list_status.updated_at}"
+                    )
+
+                }
+
+                sortedData?.data?.forEach {
+
+                    Log.d(
+                        "SORTED_TEST",
+                        "${it.node.title} -> ${it.list_status.updated_at}"
+                    )
+
+                }
 
 
                 data?.data?.forEach {
@@ -173,28 +205,28 @@ class MyListViewModel : ViewModel() {
 
                     null -> {
 
-                        _allList.value = data
+                        _allList.value = sortedData
 
                     }
 
 
                     "watching" -> {
 
-                        _watchingList.value = data
+                        _watchingList.value = sortedData
 
                     }
 
 
                     "completed" -> {
 
-                        _completedList.value = data
+                        _completedList.value = sortedData
 
                     }
 
 
                     "plan_to_watch" -> {
 
-                        _planList.value = data
+                        _planList.value = sortedData
 
                     }
 

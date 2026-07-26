@@ -1,7 +1,13 @@
 package com.nikhil.malclient.model
 
 data class AnimeListResponse(
-    val data: List<AnimeListItem>
+    val data: List<AnimeListItem>,
+    val paging: Paging?
+)
+
+
+data class Paging(
+    val next: String?
 )
 
 data class AnimeListItem(
@@ -12,7 +18,8 @@ data class AnimeListItem(
 data class ListStatus(
     val status: String,
     val score: Int,
-    val num_episodes_watched: Int
+    val num_episodes_watched: Int,
+    val updated_at: String?
 )
 
 data class AnimeListAnime(

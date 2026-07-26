@@ -20,7 +20,9 @@ interface AnimeApiService {
     suspend fun searchAnime(
         @Header("Authorization") token: String,
         @Query("q") query: String,
-        @Query("limit") limit: Int = 20
+        @Query("fields") fields: String =
+            "mean,num_episodes,status,main_picture,genres",
+        @Query("limit") limit: Int = 50
     ): Response<AnimeResponse>
 
 
@@ -44,7 +46,8 @@ interface AnimeApiService {
         @Header("Authorization") token: String,
         @Query("status") status: String? = null,
         @Query("fields") fields: String = "list_status,num_episodes,start_date,end_date",
-        @Query("limit") limit: Int = 100
+        @Query("limit") limit: Int = 100,
+        @Query("offset") offset: Int = 0
     ): Response<AnimeListResponse>
 
     @FormUrlEncoded
