@@ -10,12 +10,19 @@ import kotlinx.coroutines.launch
 import android.util.Log
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateMapOf
+import android.content.Context
+import com.nikhil.malclient.cache.MyListCache
 
 
-class MyListViewModel : ViewModel() {
+class MyListViewModel(
+    private val context: Context
+) : ViewModel() {
 
 
     private val repository = AnimeRepository()
+
+    private val cache =
+        MyListCache(context)
 
 
     val episodeUpdates = mutableStateMapOf<Int, Int>()
@@ -97,6 +104,8 @@ class MyListViewModel : ViewModel() {
                         ?.Media
 
 
+
+
                 if (media != null) {
 
 
@@ -120,6 +129,10 @@ class MyListViewModel : ViewModel() {
 
                     airedEpisodesMap[animeId] =
                         airedEpisodes.coerceAtLeast(0)
+                    Log.d(
+                        "AIR_EP_CHECK",
+                        "$animeId = ${airedEpisodesMap[animeId]}"
+                    )
 
 
 
@@ -141,9 +154,49 @@ class MyListViewModel : ViewModel() {
 
         viewModelScope.launch {
 
+
+            val cacheKey =
+                status ?: "all"
+
+
+
+            val cachedList =
+                cache.getList(
+                    cacheKey
+                )
+
+
+            if (cachedList != null && !forceRefresh) {
+
+
+                when(status) {
+
+                    null -> _allList.value = cachedList
+
+                    "watching" ->
+                        _watchingList.value = cachedList
+
+                    "completed" ->
+                        _completedList.value = cachedList
+
+                    "plan_to_watch" ->
+                        _planList.value = cachedList
+
+                }
+
+
+                Log.d(
+                    "MYLIST_CACHE",
+                    "Loaded cache $cacheKey size=${cachedList.data.size}"
+                )
+
+            }
+
+
+
             Log.d(
                 "LOAD_TEST",
-                "loadMyList called status=$status"
+                "Loading API status=$status"
             )
 
             val response = repository.getMyAnimeList(
@@ -156,6 +209,30 @@ class MyListViewModel : ViewModel() {
 
 
                 val data = response.body()
+
+                val cacheKey =
+                    status ?: "all"
+
+
+                if (data != null) {
+
+                    cache.saveList(
+                        key = cacheKey,
+                        data = data
+                    )
+
+
+                    Log.d(
+                        "MYLIST_CACHE",
+                        "Saved cache $cacheKey size=${data.data.size}"
+                    )
+
+                }
+
+                Log.d(
+                    "MYLIST_DEBUG",
+                    "Data size = ${data?.data?.size}"
+                )
 
 
 

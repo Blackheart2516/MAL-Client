@@ -1,6 +1,6 @@
 package com.nikhil.malclient.ui.components
 
-
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -11,45 +11,41 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+
 import com.nikhil.malclient.model.Anime
 import com.nikhil.malclient.model.AnimeListResponse
-import android.util.Log
 
 
 @Composable
 fun AnimeCard(
     anime: Anime,
     onClick: () -> Unit,
-    userAnimeList: AnimeListResponse?
+    userAnimeList: AnimeListResponse?,
+    airedEpisode: Int?,
+    aniListSuccess: Boolean?
 ) {
 
 
-    val myAnime = userAnimeList
-        ?.data
-        ?.find {
-
-            it.node.id == anime.id
-
-        }
-
-
-    val myStatus = myAnime
-        ?.list_status
-        ?.status
     Log.d(
-        "ID_CHECK",
-        "${anime.title} searchID=${anime.id} status=$myStatus"
+        "EP_CHECK",
+        "${anime.title} total=${anime.num_episodes} aired=$airedEpisode success=$aniListSuccess"
     )
-    Log.d(
-        "MY_LIST_CHECK",
-        userAnimeList?.data
-            ?.filter {
-                it.node.id == 38826
+
+
+    val myAnime =
+        userAnimeList
+            ?.data
+            ?.find {
+                it.node.id == anime.id
             }
-            ?.joinToString {
-                "${it.node.title}=${it.node.id} status=${it.list_status.status}"
-            } ?: "NOT FOUND"
-    )
+
+
+
+    val myStatus =
+        myAnime
+            ?.list_status
+            ?.status
+
 
 
     Card(
@@ -57,27 +53,19 @@ fun AnimeCard(
         onClick = onClick,
 
         modifier = Modifier
-
             .fillMaxWidth()
-
             .padding(
-
                 horizontal = 4.dp,
-
                 vertical = 4.dp
-
             )
 
     ) {
 
 
-
         Row(
 
             modifier = Modifier
-
                 .fillMaxWidth()
-
                 .padding(8.dp)
 
         ) {
@@ -87,20 +75,14 @@ fun AnimeCard(
             Image(
 
                 painter = rememberAsyncImagePainter(
-
                     anime.main_picture?.medium
-
                 ),
 
                 contentDescription = anime.title,
 
-
                 modifier = Modifier
-
                     .width(75.dp)
-
                     .height(110.dp),
-
 
                 contentScale = ContentScale.Crop
 
@@ -109,18 +91,14 @@ fun AnimeCard(
 
 
             Spacer(
-
                 modifier = Modifier.width(12.dp)
-
             )
 
 
 
             Column(
 
-                modifier = Modifier
-
-                    .weight(1f)
+                modifier = Modifier.weight(1f)
 
             ) {
 
@@ -141,26 +119,51 @@ fun AnimeCard(
 
 
                 Spacer(
-
                     modifier = Modifier.height(6.dp)
-
                 )
 
 
 
                 Text(
-
                     text = "⭐ Score: ${anime.mean ?: "N/A"}"
-
                 )
+
+
+
+                // Episode logic
+                // 1. MAL total episodes
+                // 2. AniList currently aired
+                // 3. ?
+
+                val displayEpisodes =
+                    when {
+
+
+                        anime.num_episodes != null &&
+                                anime.num_episodes > 0 ->
+
+                            anime.num_episodes
+
+
+
+                        airedEpisode != null &&
+                                airedEpisode > 0 ->
+
+                            airedEpisode
+
+
+
+                        else ->
+
+                            "?"
+
+                    }
 
 
 
                 Text(
 
-                    text = "📺 Episodes: ${
-                        anime.num_episodes ?: "Unknown"
-                    }"
+                    text = "📺 Episodes: $displayEpisodes"
 
                 )
 
@@ -179,28 +182,25 @@ fun AnimeCard(
 
 
                 Spacer(
-
                     modifier = Modifier.height(6.dp)
-
                 )
 
 
 
-                if (myStatus != null) {
+                if(myStatus != null) {
+
 
 
                     Text(
 
                         text = myStatus
-
                             .replace("_", " ")
-
                             .uppercase(),
-
 
                         fontWeight = FontWeight.Bold
 
                     )
+
 
 
                 } else {
@@ -211,7 +211,7 @@ fun AnimeCard(
 
                         onClick = {
 
-                            // Add to List later
+                            // Add to list later
 
                         },
 
@@ -241,12 +241,17 @@ fun AnimeCard(
 
                     }
 
+
                 }
+
 
             }
 
+
         }
 
+
     }
+
 
 }

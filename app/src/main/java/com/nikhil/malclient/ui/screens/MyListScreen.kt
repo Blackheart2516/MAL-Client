@@ -1,5 +1,6 @@
 package com.nikhil.malclient.ui.screens
 
+import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -13,45 +14,71 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-
-import androidx.compose.material.pullrefresh.PullRefreshIndicator
-import androidx.compose.material.pullrefresh.pullRefresh
-import androidx.compose.material.pullrefresh.rememberPullRefreshState
-
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
+
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
+
 import com.nikhil.malclient.viewmodel.MyListViewModel
+import com.nikhil.malclient.viewmodel.AniListViewModel
 
 import kotlinx.coroutines.launch
-import androidx.compose.material.ExperimentalMaterialApi
-
 
 
 @Composable
 @OptIn(ExperimentalMaterialApi::class)
 fun MyListScreen(
-    token: String
+    token: String,
+    myListViewModel: MyListViewModel
 ) {
 
 
-    val viewModel: MyListViewModel = viewModel()
+    Log.d(
+        "MYLIST_TEST",
+        "MyListScreen opened"
+    )
+
+
+    val context = LocalContext.current
+
+
+    val aniListViewModel: AniListViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+
+            override fun <T : androidx.lifecycle.ViewModel> create(
+                modelClass: Class<T>
+            ): T {
+
+                return AniListViewModel(
+                    context
+                ) as T
+
+            }
+
+        }
+    )
 
 
 
-    val allList by viewModel.allList.collectAsState()
+    val allList by myListViewModel.allList.collectAsState()
 
-    val watchingList by viewModel.watchingList.collectAsState()
+    val watchingList by myListViewModel.watchingList.collectAsState()
 
-    val completedList by viewModel.completedList.collectAsState()
+    val completedList by myListViewModel.completedList.collectAsState()
 
-    val planList by viewModel.planList.collectAsState()
+    val planList by myListViewModel.planList.collectAsState()
 
 
 
@@ -65,23 +92,16 @@ fun MyListScreen(
 
 
     var selectedTab by remember {
-
         mutableIntStateOf(0)
-
     }
 
 
 
     val pagerState = rememberPagerState(
-
         initialPage = 0,
-
         pageCount = {
-
             4
-
         }
-
     )
 
 
@@ -99,9 +119,11 @@ fun MyListScreen(
     val scope = rememberCoroutineScope()
 
 
+
     var isRefreshing by remember {
         mutableStateOf(false)
     }
+
 
 
     val refreshState = rememberPullRefreshState(
@@ -115,12 +137,9 @@ fun MyListScreen(
                 isRefreshing = true
 
 
-                viewModel.refreshMyList(
-
-                    token = token,
-
-                    status = statuses[pagerState.currentPage]
-
+                myListViewModel.refreshMyList(
+                    token,
+                    statuses[pagerState.currentPage]
                 )
 
 
@@ -129,13 +148,14 @@ fun MyListScreen(
             }
 
         }
+
     )
 
 
 
     LaunchedEffect(Unit) {
 
-        viewModel.loadMyList(token)
+        myListViewModel.loadMyList(token)
 
     }
 
@@ -143,37 +163,27 @@ fun MyListScreen(
 
     LaunchedEffect(pagerState.currentPage) {
 
-
         selectedTab = pagerState.currentPage
 
 
-        viewModel.loadMyList(
-
+        myListViewModel.loadMyList(
             token,
-
             statuses[pagerState.currentPage]
-
         )
 
     }
     Column(
 
         modifier = Modifier
-
             .fillMaxSize()
-
             .background(Color(0xFF0B1628))
 
     ) {
 
 
-
         Spacer(
-
             modifier = Modifier.height(40.dp)
-
         )
-
 
 
         TabRow(
@@ -187,19 +197,12 @@ fun MyListScreen(
         ) {
 
 
-
             listOf(
-
                 "All",
-
                 "Watching",
-
                 "Completed",
-
                 "Plan"
-
             ).forEachIndexed { index, title ->
-
 
 
                 Tab(
@@ -208,7 +211,6 @@ fun MyListScreen(
 
 
                     onClick = {
-
 
                         scope.launch {
 
@@ -224,23 +226,17 @@ fun MyListScreen(
 
                     text = {
 
-
                         Text(
 
                             text = title,
 
                             fontSize = 12.sp,
 
-                            maxLines = 1,
-
-
-                            color = if(selectedTab == index)
-
-                                Color.White
-
-                            else
-
-                                Color(0xFF8A8A8A)
+                            color =
+                                if (selectedTab == index)
+                                    Color.White
+                                else
+                                    Color(0xFF8A8A8A)
 
                         )
 
@@ -251,7 +247,6 @@ fun MyListScreen(
             }
 
         }
-
 
 
 
@@ -267,33 +262,23 @@ fun MyListScreen(
 
             val currentScrollState = when(page) {
 
-
                 0 -> allScrollState
-
-
                 1 -> watchingScrollState
-
-
                 2 -> completedScrollState
-
-
                 else -> planScrollState
 
-
             }
-
 
 
 
             Box(
 
                 modifier = Modifier
-
                     .fillMaxSize()
-
                     .pullRefresh(refreshState)
 
             ) {
+
 
 
                 LazyColumn(
@@ -301,211 +286,149 @@ fun MyListScreen(
                     state = currentScrollState,
 
                     modifier = Modifier
-
                         .fillMaxSize()
-
                         .padding(8.dp),
 
                     verticalArrangement = Arrangement.spacedBy(8.dp)
 
-                )  {
+                ) {
 
 
 
-                items(
+                    items(
 
-                    items = when(page) {
+                        items = when(page) {
 
+                            0 -> allList?.data ?: emptyList()
 
-                        0 -> allList?.data ?: emptyList()
+                            1 -> watchingList?.data ?: emptyList()
 
+                            2 -> completedList?.data ?: emptyList()
 
-                        1 -> watchingList?.data ?: emptyList()
+                            else -> planList?.data ?: emptyList()
 
-
-                        2 -> completedList?.data ?: emptyList()
-
-
-                        else -> planList?.data ?: emptyList()
+                        },
 
 
-                    },
+                        key = {
+                                item -> item.node.id
+                        }
 
 
-                    key = { item ->
-
-                        item.node.id
-
-                    }
-
-                ) { item ->
+                    ) { item ->
 
 
 
-                    LaunchedEffect(item.node.id) {
-
-
-                        viewModel.loadAiredEpisodes(
-
-                            animeId = item.node.id
-
+                        Log.d(
+                            "MYLIST_ITEM",
+                            "${item.node.title} id=${item.node.id}"
                         )
 
-                    }
 
 
+                        // Load AniList aired episodes
+
+                        LaunchedEffect(item.node.id) {
 
 
-                    val totalEpisodes =
+                            aniListViewModel.loadAiredEpisodes(
 
-                        item.node.num_episodes ?: 0
-
-
-
-
-                    val airedEpisodes =
-
-                        viewModel.airedEpisodesMap[item.node.id] ?: 0
-
-
-
-
-                    val watchedEpisodes =
-
-                        (
-
-                                viewModel.episodeUpdates[item.node.id]
-
-                                    ?: item.list_status.num_episodes_watched
-
-                                )
-
-                            .coerceAtMost(
-
-                                if(airedEpisodes > 0)
-
-                                    airedEpisodes
-
-                                else
-
-                                    totalEpisodes
+                                item.node.id
 
                             )
 
 
-
-
-                    Card(
-
-                        modifier = Modifier
-
-                            .fillMaxWidth(),
-
-
-                        shape = RoundedCornerShape(12.dp),
-
-
-                        colors = CardDefaults.cardColors(
-
-                            containerColor = Color(0xFF14243A)
-
-                        )
-
-                    ) {
+                        }
 
 
 
-                        Row(
+                        val totalEpisodes =
+                            item.node.num_episodes ?: 0
 
-                            modifier = Modifier
 
-                                .padding(10.dp)
+
+                        // AniList first, MAL fallback
+
+                        val airedEpisodes =
+
+                            aniListViewModel.airedEpisodesMap[item.node.id]
+                                ?: totalEpisodes
+
+
+
+
+                        val watchedEpisodes =
+
+                            (
+
+                                    myListViewModel.episodeUpdates[item.node.id]
+
+                                        ?: item.list_status.num_episodes_watched
+
+                                    )
+                                .coerceAtMost(
+
+                                    if(airedEpisodes > 0)
+
+                                        airedEpisodes
+
+                                    else
+
+                                        totalEpisodes
+
+                                )
+
+
+
+                        Card(
+
+                            modifier = Modifier.fillMaxWidth(),
+
+                            shape = RoundedCornerShape(12.dp),
+
+                            colors = CardDefaults.cardColors(
+
+                                containerColor = Color(0xFF14243A)
+
+                            )
 
                         ) {
 
 
 
-                            AsyncImage(
+                            Row(
 
-                                model = item.node.main_picture?.medium,
-
-                                contentDescription = item.node.title,
-
-
-                                modifier = Modifier
-
-                                    .width(100.dp)
-
-                                    .height(150.dp),
-
-
-                                contentScale = ContentScale.Crop
-
-                            )
-
-                            Spacer(
-
-                                modifier = Modifier.width(12.dp)
-
-                            )
-
-
-
-                            Column(
-
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.padding(10.dp)
 
                             ) {
 
 
 
-                                Text(
+                                AsyncImage(
 
-                                    text = item.node.title,
+                                    model = item.node.main_picture?.medium,
 
-                                    color = Color(0xFF42A5F5),
+                                    contentDescription = item.node.title,
 
-                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier
+                                        .width(100.dp)
+                                        .height(150.dp),
 
-                                    fontSize = 14.sp,
-
-                                    maxLines = 1
-
-                                )
-
-
-
-                                Spacer(
-
-                                    modifier = Modifier.height(6.dp)
-
-                                )
-
-
-
-                                Text(
-
-                                    text = item.list_status.status.uppercase(),
-
-                                    color = Color(0xFF8FA8C8),
-
-                                    fontSize = 11.sp
+                                    contentScale = ContentScale.Crop
 
                                 )
 
 
 
                                 Spacer(
-
-                                    modifier = Modifier.height(6.dp)
-
+                                    modifier = Modifier.width(12.dp)
                                 )
 
 
 
-                                Row(
+                                Column(
 
-                                    verticalAlignment = Alignment.CenterVertically
+                                    modifier = Modifier.weight(1f)
 
                                 ) {
 
@@ -513,178 +436,175 @@ fun MyListScreen(
 
                                     Text(
 
-                                        text = "⭐ ${item.list_status.score}",
+                                        text = item.node.title,
 
-                                        color = Color(0xFFFFD54F)
+                                        color = Color(0xFF42A5F5),
+
+                                        fontWeight = FontWeight.Bold,
+
+                                        fontSize = 14.sp
 
                                     )
 
 
 
                                     Spacer(
+                                        modifier = Modifier.height(6.dp)
+                                    )
 
-                                        modifier = Modifier.width(12.dp)
+
+
+                                    Text(
+
+                                        text =
+                                            item.list_status.status.uppercase(),
+
+                                        color = Color(0xFF8FA8C8),
+
+                                        fontSize = 11.sp
 
                                     )
 
 
 
-                                    Button(
-
-                                        onClick = {
-
-
-                                            if (
-
-                                                watchedEpisodes < airedEpisodes ||
-
-                                                airedEpisodes == 0
-
-                                            ) {
-
-
-                                                val newEpisodeCount =
-
-                                                    watchedEpisodes + 1
+                                    Spacer(
+                                        modifier = Modifier.height(6.dp)
+                                    )
 
 
 
-                                                viewModel.updateLocalEpisode(
+                                    Row(
 
-                                                    animeId = item.node.id,
-
-                                                    episodes = newEpisodeCount
-
-                                                )
-
-
-
-                                                viewModel.updateEpisodeProgress(
-
-                                                    token = token,
-
-                                                    animeId = item.node.id.toString(),
-
-                                                    episodes = newEpisodeCount
-
-                                                )
-
-                                            }
-
-
-                                        },
-
-
-                                        modifier = Modifier.height(30.dp),
-
-
-                                        contentPadding = PaddingValues(
-
-                                            horizontal = 10.dp,
-
-                                            vertical = 2.dp
-
-                                        )
+                                        verticalAlignment = Alignment.CenterVertically
 
                                     ) {
 
 
+
                                         Text(
 
-                                            text = "+1",
+                                            text =
+                                                "⭐ ${item.list_status.score}",
 
-                                            fontSize = 12.sp
+                                            color = Color(0xFFFFD54F)
 
                                         )
 
+
+
+                                        Spacer(
+                                            modifier = Modifier.width(12.dp)
+                                        )
+
+
+
+                                        Button(
+
+                                            onClick = {
+
+
+                                                val newEpisodeCount =
+                                                    watchedEpisodes + 1
+
+
+
+                                                myListViewModel.updateLocalEpisode(
+
+                                                    item.node.id,
+
+                                                    newEpisodeCount
+
+                                                )
+
+
+
+                                                myListViewModel.updateEpisodeProgress(
+
+                                                    token,
+
+                                                    item.node.id.toString(),
+
+                                                    newEpisodeCount
+
+                                                )
+
+                                            },
+
+
+                                            modifier =
+                                                Modifier.height(30.dp)
+
+                                        ) {
+
+
+                                            Text("+1")
+
+                                        }
+
                                     }
 
+
+
+                                    Text(
+
+                                        text = "Episodes: $watchedEpisodes / ${
+                                            if(airedEpisodes > 0)
+                                                airedEpisodes
+                                            else
+                                                "?"
+                                        } / ${
+                                            if(totalEpisodes > 0)
+                                                totalEpisodes
+                                            else
+                                                "?"
+                                        }",
+
+                                        color = Color(0xFFBDBDBD)
+
+                                    )
+
+
+
+                                    Spacer(
+                                        modifier = Modifier.height(8.dp)
+                                    )
+
+
+
+                                    val progress =
+
+                                        if(totalEpisodes > 0)
+
+                                            watchedEpisodes.toFloat() /
+                                                    totalEpisodes.toFloat()
+
+                                        else
+
+                                            0f
+
+
+
+                                    val animatedProgress by animateFloatAsState(
+
+                                        targetValue = progress,
+
+                                        animationSpec = tween(500)
+
+                                    )
+
+
+
+                                    LinearProgressIndicator(
+
+                                        progress = animatedProgress,
+
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(6.dp)
+
+                                    )
+
                                 }
-
-
-
-
-                                Text(
-
-                                    text = "Episodes: $watchedEpisodes / ${
-                                        if (airedEpisodes > 0)
-
-                                            airedEpisodes
-
-                                        else
-
-                                            "?"
-
-                                    } / ${
-                                        if (totalEpisodes > 0)
-
-                                            totalEpisodes
-
-                                        else
-
-                                            "?"
-                                    }",
-
-
-                                    color = Color(0xFFBDBDBD)
-
-                                )
-
-
-
-                                Spacer(
-
-                                    modifier = Modifier.height(8.dp)
-
-                                )
-
-
-
-                                val progress =
-
-                                    if (totalEpisodes > 0)
-
-                                        watchedEpisodes.toFloat() /
-
-                                                totalEpisodes.toFloat()
-
-                                    else
-
-                                        0f
-
-
-
-
-                                val animatedProgress by animateFloatAsState(
-
-                                    targetValue = progress,
-
-                                    animationSpec = tween(500)
-
-                                )
-
-
-
-                                LinearProgressIndicator(
-
-                                    progress = animatedProgress,
-
-
-                                    modifier = Modifier
-
-                                        .fillMaxWidth()
-
-                                        .height(6.dp),
-
-
-                                    color = Color(0xFF42A5F5),
-
-
-                                    trackColor = Color(0xFF24364D)
-
-                                )
-
-
 
                             }
 
@@ -694,7 +614,8 @@ fun MyListScreen(
 
                 }
 
-            }
+
+
                 PullRefreshIndicator(
 
                     refreshing = isRefreshing,
@@ -714,4 +635,3 @@ fun MyListScreen(
     }
 
 }
-
