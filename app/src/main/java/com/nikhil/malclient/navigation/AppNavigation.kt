@@ -14,34 +14,45 @@ import com.nikhil.malclient.ui.screens.MyListScreen
 import com.nikhil.malclient.ui.screens.SearchScreen
 import com.nikhil.malclient.user.UserSession
 import com.nikhil.malclient.viewmodel.MyListViewModel
-import android.content.Context
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.ui.platform.LocalContext
 
 
 
 @Composable
 fun AppNavigation(
     clientId: String,
-    startDestination: String = "login"
+    startDestination: String = "login",
+    onLoginSuccess: () -> Unit
 ) {
 
-    val navController = rememberNavController()
 
-    val context = LocalContext.current
-    val tokenManager = TokenManager(context)
+    val navController =
+        rememberNavController()
+
+
+
+    val context =
+        LocalContext.current
+
+
+    val tokenManager =
+        TokenManager(context)
 
 
 
 
 
     val myListViewModel: MyListViewModel = viewModel(
-        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+
+        factory = object : ViewModelProvider.Factory {
+
 
             override fun <T : androidx.lifecycle.ViewModel> create(
+
                 modelClass: Class<T>
+
             ): T {
+
 
                 return MyListViewModel(
                     context
@@ -50,50 +61,99 @@ fun AppNavigation(
             }
 
         }
+
     )
 
 
 
+
+
+
     NavHost(
+
         navController = navController,
+
         startDestination = startDestination
+
     ) {
+
+
 
 
         composable("login") {
 
-            LoginScreen()
+
+            LoginScreen(
+
+                onLoginSuccess = {
+
+                    navController.navigate("home") {
+
+                        popUpTo("login") {
+
+                            inclusive = true
+
+                        }
+
+                    }
+
+                }
+
+            )
+
 
         }
+
+
+
 
 
 
         composable("home") {
 
 
+
             HomeScreen(
 
-                username = UserSession.username,
 
-                picture = UserSession.picture,
+                username =
+                    UserSession.username.value,
+
+
+                picture =
+                    UserSession.picture.value,
+
 
 
                 onSearchClick = {
 
-                    navController.navigate("search")
+
+                    navController.navigate(
+                        "search"
+                    )
+
 
                 },
 
 
+
                 onMyListClick = {
 
-                    navController.navigate("mylist")
+
+                    navController.navigate(
+                        "mylist"
+                    )
+
 
                 }
 
+
             )
 
+
         }
+
+
 
 
 
@@ -101,17 +161,29 @@ fun AppNavigation(
         composable("search") {
 
 
+
             SearchScreen(
 
-                token = tokenManager.getAccessToken() ?: "",
 
-                navController = navController,
+                token =
+                    tokenManager.getAccessToken()
+                        ?: "",
 
-                myListViewModel = myListViewModel
+
+                navController =
+                    navController,
+
+
+                myListViewModel =
+                    myListViewModel
+
 
             )
 
+
         }
+
+
 
 
 
@@ -120,15 +192,25 @@ fun AppNavigation(
         composable("mylist") {
 
 
+
             MyListScreen(
 
-                token = tokenManager.getAccessToken() ?: "",
 
-                myListViewModel = myListViewModel
+                token =
+                    tokenManager.getAccessToken()
+                        ?: "",
+
+
+                myListViewModel =
+                    myListViewModel
+
 
             )
 
+
         }
+
+
 
 
 
@@ -137,21 +219,32 @@ fun AppNavigation(
         composable("details/{animeId}") { backStackEntry ->
 
 
+
             val animeId =
-                backStackEntry.arguments?.getString("animeId") ?: ""
+                backStackEntry.arguments
+                    ?.getString("animeId")
+                    ?: ""
 
 
 
             AnimeDetailsScreen(
 
+
                 animeId = animeId,
 
-                token = tokenManager.getAccessToken() ?: ""
+
+                token =
+                    tokenManager.getAccessToken()
+                        ?: ""
+
 
             )
 
+
         }
 
+
     }
+
 
 }

@@ -220,10 +220,10 @@ fun SearchScreen(
 
 
 
-                val airedEpisode by derivedStateOf {
-
-                    aniListViewModel.airedEpisodesMap[anime.id]
-
+                val airedEpisode by remember {
+                    derivedStateOf {
+                        aniListViewModel.airedEpisodesMap[anime.id]
+                    }
                 }
 
 

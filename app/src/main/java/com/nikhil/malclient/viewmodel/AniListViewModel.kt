@@ -5,7 +5,7 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nikhil.malclient.cache.EpisodeCache
+import com.nikhil.malclient.cache.AppCache
 import com.nikhil.malclient.repository.AniListRepository
 import kotlinx.coroutines.launch
 
@@ -19,29 +19,24 @@ class AniListViewModel(
         AniListRepository()
 
 
-    private val cache =
-        EpisodeCache(context)
+    private val cache = AppCache(context)
 
 
 
-    // Stores episode count
-    // Example:
-    // 21 -> 1171
     val airedEpisodesMap =
         mutableStateMapOf<Int, Int?>()
 
 
 
-    // true  = AniList responded
-    // false = AniList failed
     val aniListStatusMap =
         mutableStateMapOf<Int, Boolean>()
 
 
 
-    // Prevent duplicate API calls
     private val loadingAniList =
         mutableSetOf<Int>()
+
+
 
 
 
@@ -50,17 +45,46 @@ class AniListViewModel(
     ) {
 
 
-        // Already loaded
-        if (
-            airedEpisodesMap[malId] != null
-        ) {
+        // Already loaded in memory
+        if (airedEpisodesMap[malId] != null) {
+
             return
+
         }
 
 
-        // Already requesting
+
+        // Load cache first (instant)
+
+        val cachedEpisode =
+            cache.getEpisode(malId)
+
+
+
+        if (cachedEpisode != null) {
+
+
+            airedEpisodesMap[malId] =
+                cachedEpisode
+
+
+
+            Log.d(
+                "EP_CACHE",
+                "$malId instant=$cachedEpisode"
+            )
+
+        }
+
+
+
+
+        // Prevent duplicate API calls
+
         if (loadingAniList.contains(malId)) {
+
             return
+
         }
 
 
@@ -69,13 +93,18 @@ class AniListViewModel(
 
 
 
+
+        // Update from AniList in background
+
         viewModelScope.launch {
 
 
             val result =
+
                 repository.getAiredEpisodes(
                     malId
                 )
+
 
 
 
@@ -86,22 +115,30 @@ class AniListViewModel(
 
 
 
-            if (result.success && result.episodes != null) {
+
+            if (
+                result.success &&
+                result.episodes != null
+            ) {
 
 
-                // AniList success
-                // Save to memory
+
+                // Update memory
 
                 airedEpisodesMap[malId] =
                     result.episodes
 
 
 
-                // Save permanently
+
+                // Update cache
 
                 cache.saveEpisode(
+
                     animeId = malId,
+
                     episodes = result.episodes
+
                 )
 
 
@@ -112,58 +149,58 @@ class AniListViewModel(
                 )
 
 
-            }
-            else if (!result.success) {
-
-
-                val cachedEpisode =
-                    cache.getEpisode(malId)
-
-
-                if (cachedEpisode != null) {
-
-                    airedEpisodesMap[malId] =
-                        cachedEpisode
-
-
-                    Log.d(
-                        "EP_CACHE",
-                        "$malId loaded=$cachedEpisode"
-                    )
-
-                }
 
             }
+
+
+
+
             else {
 
-                // AniList responded but no data
-                // Try cache instead of storing null
 
-                val cachedEpisode =
-                    cache.getEpisode(
-                        malId
-                    )
+                // AniList failed
+                // Keep cache value if already loaded
 
 
-                if (cachedEpisode != null) {
+                if (
+                    airedEpisodesMap[malId] == null
+                ) {
 
-                    airedEpisodesMap[malId] =
-                        cachedEpisode
+
+                    val fallback =
+
+                        cache.getEpisode(malId)
 
 
-                    Log.d(
-                        "EP_CACHE",
-                        "$malId fallback=$cachedEpisode"
-                    )
+
+                    if (fallback != null) {
+
+
+                        airedEpisodesMap[malId] =
+                            fallback
+
+
+
+                        Log.d(
+                            "EP_CACHE",
+                            "$malId fallback=$fallback"
+                        )
+
+
+                    }
 
                 }
 
+
             }
+
 
 
 
             aniListStatusMap[malId] =
                 result.success
+
+
 
 
 
@@ -174,10 +211,15 @@ class AniListViewModel(
 
 
 
+
             loadingAniList.remove(malId)
+
+
 
         }
 
+
     }
+
 
 }

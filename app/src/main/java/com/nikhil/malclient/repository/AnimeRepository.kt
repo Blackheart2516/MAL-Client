@@ -20,7 +20,7 @@ class AnimeRepository {
         return RetrofitClient.animeApi.searchAnime(
             token = "Bearer $token",
             query = query,
-            limit = 50
+            limit = 20
         )
 
     }

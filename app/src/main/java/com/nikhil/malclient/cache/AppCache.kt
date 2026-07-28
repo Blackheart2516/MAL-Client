@@ -1,13 +1,11 @@
 package com.nikhil.malclient.cache
 
 import android.content.Context
-import com.nikhil.malclient.cache.AppCache
 
 
-class EpisodeCache(
+class AppCache(
     context: Context
 ) {
-
 
     private val prefs =
         context.getSharedPreferences(
@@ -16,22 +14,13 @@ class EpisodeCache(
         )
 
 
-
-    // Username cache
-
-    fun saveUsername(
-        username: String
-    ) {
+    fun saveUsername(username: String) {
 
         prefs.edit()
-            .putString(
-                "username",
-                username
-            )
+            .putString("username", username)
             .apply()
 
     }
-
 
 
     fun getUsername(): String {
@@ -44,23 +33,13 @@ class EpisodeCache(
     }
 
 
-
-
-    // Profile picture cache
-
-    fun savePicture(
-        picture: String?
-    ) {
+    fun savePicture(picture: String?) {
 
         prefs.edit()
-            .putString(
-                "picture",
-                picture
-            )
+            .putString("picture", picture)
             .apply()
 
     }
-
 
 
     fun getPicture(): String? {
@@ -72,11 +51,6 @@ class EpisodeCache(
 
     }
 
-
-
-
-
-    // Episode cache
 
     fun saveEpisode(
         animeId: Int,
@@ -93,17 +67,12 @@ class EpisodeCache(
     }
 
 
-
-
-
     fun getEpisode(
         animeId: Int
     ): Int? {
 
 
-        val key =
-            "episode_$animeId"
-
+        val key = "episode_$animeId"
 
 
         if (!prefs.contains(key)) {
@@ -113,13 +82,11 @@ class EpisodeCache(
         }
 
 
-
         return prefs.getInt(
             key,
             0
         )
 
     }
-
 
 }

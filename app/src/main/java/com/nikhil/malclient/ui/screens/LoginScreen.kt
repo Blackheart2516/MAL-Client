@@ -13,7 +13,9 @@ import androidx.compose.ui.unit.sp
 import com.nikhil.malclient.auth.OAuthManager
 
 @Composable
-fun LoginScreen() {
+fun LoginScreen(
+    onLoginSuccess: () -> Unit
+) {
 
     val context = LocalContext.current
     val oauthManager = OAuthManager(context)
