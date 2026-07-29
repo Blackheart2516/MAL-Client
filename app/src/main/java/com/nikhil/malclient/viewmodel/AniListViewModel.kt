@@ -19,17 +19,23 @@ class AniListViewModel(
         AniListRepository()
 
 
-    private val cache = AppCache(context)
+
+    private val cache =
+        AppCache(context)
 
 
 
+
+    // MAL ID -> aired episodes
     val airedEpisodesMap =
         mutableStateMapOf<Int, Int?>()
 
 
 
+    // MAL ID -> AniList success/failure
     val aniListStatusMap =
         mutableStateMapOf<Int, Boolean>()
+
 
 
 
@@ -39,47 +45,42 @@ class AniListViewModel(
 
 
 
-
     fun loadAiredEpisodes(
         malId: Int
     ) {
 
 
-        // Already loaded in memory
-        if (airedEpisodesMap[malId] != null) {
+        // 1. Load from memory/cache immediately
 
-            return
-
-        }
+        if (airedEpisodesMap[malId] == null) {
 
 
-
-        // Load cache first (instant)
-
-        val cachedEpisode =
-            cache.getEpisode(malId)
+            val cachedEpisode =
+                cache.getEpisode(malId)
 
 
 
-        if (cachedEpisode != null) {
+            if (cachedEpisode != null) {
 
 
-            airedEpisodesMap[malId] =
-                cachedEpisode
+                airedEpisodesMap[malId] =
+                    cachedEpisode
 
 
 
-            Log.d(
-                "EP_CACHE",
-                "$malId instant=$cachedEpisode"
-            )
+                Log.d(
+                    "EP_CACHE",
+                    "$malId instant=$cachedEpisode"
+                )
+
+            }
 
         }
 
 
 
 
-        // Prevent duplicate API calls
+        // 2. Prevent duplicate API requests
 
         if (loadingAniList.contains(malId)) {
 
@@ -94,73 +95,91 @@ class AniListViewModel(
 
 
 
-        // Update from AniList in background
+
+        // 3. Update from AniList in background
 
         viewModelScope.launch {
 
 
-            val result =
-
-                repository.getAiredEpisodes(
-                    malId
-                )
+            try {
 
 
 
+                val result =
+                    repository.getAiredEpisodes(
+                        malId
+                    )
 
-            Log.d(
-                "ANILIST_RESULT",
-                "$malId = ${result.episodes} success=${result.success}"
-            )
-
-
-
-
-            if (
-                result.success &&
-                result.episodes != null
-            ) {
-
-
-
-                // Update memory
-
-                airedEpisodesMap[malId] =
-                    result.episodes
-
-
-
-
-                // Update cache
-
-                cache.saveEpisode(
-
-                    animeId = malId,
-
-                    episodes = result.episodes
-
-                )
 
 
 
                 Log.d(
-                    "EP_CACHE",
-                    "$malId saved=${result.episodes}"
+                    "ANILIST_RESULT",
+                    "$malId episodes=${result.episodes} success=${result.success}"
                 )
 
 
 
-            }
+
+
+                if (
+                    result.success &&
+                    result.episodes != null
+                ) {
+
+
+
+                    // Update UI
+
+                    airedEpisodesMap[malId] =
+                        result.episodes
 
 
 
 
-            else {
+
+                    // Update cache
+
+                    cache.saveEpisode(
+
+                        animeId = malId,
+
+                        episodes = result.episodes
+
+                    )
 
 
-                // AniList failed
-                // Keep cache value if already loaded
 
+                    Log.d(
+                        "EP_CACHE",
+                        "$malId saved=${result.episodes}"
+                    )
+
+
+
+                }
+
+
+
+                aniListStatusMap[malId] =
+                    result.success
+
+
+
+
+
+            } catch (e: Exception) {
+
+
+
+                Log.e(
+                    "ANILIST_ERROR",
+                    "$malId ${e.message}"
+                )
+
+
+
+                // Keep existing cache value
 
                 if (
                     airedEpisodesMap[malId] == null
@@ -168,7 +187,6 @@ class AniListViewModel(
 
 
                     val fallback =
-
                         cache.getEpisode(malId)
 
 
@@ -192,31 +210,24 @@ class AniListViewModel(
                 }
 
 
+
+                aniListStatusMap[malId] =
+                    false
+
+
+            } finally {
+
+
+
+                loadingAniList.remove(malId)
+
+
             }
 
 
 
-
-            aniListStatusMap[malId] =
-                result.success
-
-
-
-
-
-            Log.d(
-                "ANILIST_MAP",
-                "$malId stored=${airedEpisodesMap[malId]}"
-            )
-
-
-
-
-            loadingAniList.remove(malId)
-
-
-
         }
+
 
 
     }

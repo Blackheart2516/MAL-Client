@@ -33,14 +33,45 @@ class AnimeSearchViewModel : ViewModel() {
 
         viewModelScope.launch {
 
-            val response = repository.getMyAnimeList(
-                token = token
-            )
+            try {
 
 
-            if(response.isSuccessful) {
+                val response =
+                    repository.getMyAnimeList(
+                        token = token
+                    )
 
-                _userAnimeList.value = response.body()
+
+
+                if (response.isSuccessful) {
+
+
+                    _userAnimeList.value =
+                        response.body()
+
+
+                }
+                else {
+
+
+                    Log.e(
+                        "MYLIST_ERROR",
+                        "API failed ${response.code()}"
+                    )
+
+                }
+
+
+            }
+            catch (e: Exception) {
+
+
+                Log.e(
+                    "MYLIST_ERROR",
+                    "Loading my list failed",
+                    e
+                )
+
 
             }
 
@@ -55,36 +86,71 @@ class AnimeSearchViewModel : ViewModel() {
 
         viewModelScope.launch {
 
-            val response = repository.searchAnime(
-                token,
-                query.trim()
-            )
+            try {
 
-            if (response.isSuccessful) {
 
-                val result =
-                    response.body()?.data?.map {
-                        it.node
-                    } ?: emptyList()
-
-                _animeList.value = result
-
-//                result.take(5).forEach { anime ->
-//
-//                    loadAiredEpisodes(
-//                        anime.id
-//                    )
-//
-//                }
-
-                Log.d(
-                    "SEARCH_RESULT",
-                    result.joinToString(", ") { anime ->
-                        anime.title
-                    }
+                val response = repository.searchAnime(
+                    token,
+                    query.trim()
                 )
+
+
+                if (response.isSuccessful) {
+
+
+                    val result =
+                        response.body()
+                            ?.data
+                            ?.map {
+                                it.node
+                            }
+                            ?: emptyList()
+
+
+
+                    _animeList.value =
+                        result
+
+
+
+                    Log.d(
+                        "SEARCH_RESULT",
+                        result.joinToString(", ") { anime ->
+                            anime.title
+                        }
+                    )
+
+
+                }
+                else {
+
+
+                    Log.e(
+                        "SEARCH_ERROR",
+                        "API failed ${response.code()}"
+                    )
+
+                }
+
+
             }
+            catch (e: Exception) {
+
+
+                Log.e(
+                    "SEARCH_ERROR",
+                    "Search failed",
+                    e
+                )
+
+
+                _animeList.value =
+                    emptyList()
+
+            }
+
         }
+
     }
     fun loadAiredEpisodes(
         animeId: Int

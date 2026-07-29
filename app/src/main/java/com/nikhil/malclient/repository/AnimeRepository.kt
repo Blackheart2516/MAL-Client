@@ -1,9 +1,9 @@
 package com.nikhil.malclient.repository
 
 import com.nikhil.malclient.api.RetrofitClient
+import com.nikhil.malclient.model.Anime
 import com.nikhil.malclient.model.AnimeResponse
 import com.nikhil.malclient.model.AnimeListResponse
-import com.nikhil.malclient.model.AnimeListItem
 import com.nikhil.malclient.model.AniListResponse
 import retrofit2.Response
 
@@ -17,23 +17,107 @@ class AnimeRepository {
     ): Response<AnimeResponse> {
 
 
-        return RetrofitClient.animeApi.searchAnime(
-            token = "Bearer $token",
-            query = query,
-            limit = 20
-        )
+        return try {
+
+
+            RetrofitClient.animeApi.searchAnime(
+
+                token = "Bearer $token",
+
+                query = query,
+
+                limit = 20
+
+            )
+
+
+        } catch (e: Exception) {
+
+
+            e.printStackTrace()
+
+
+            Response.success(
+
+                AnimeResponse(
+                    data = emptyList()
+                )
+
+            )
+
+
+        }
+
 
     }
+
+
+
+
 
 
 
     suspend fun getAnimeDetails(
         token: String,
         animeId: String
-    ) = RetrofitClient.animeApi.getAnimeDetails(
-        token = "Bearer $token",
-        animeId = animeId
-    )
+    ): Response<Anime> {
+
+
+        return try {
+
+
+            RetrofitClient.animeApi.getAnimeDetails(
+
+                token = "Bearer $token",
+
+                animeId = animeId
+
+            )
+
+
+        } catch (e: Exception) {
+
+
+            e.printStackTrace()
+
+
+            Response.success(
+
+                Anime(
+
+                    id = animeId.toInt(),
+
+                    title = "Unable to load",
+
+                    main_picture = null,
+
+                    mean = null,
+
+                    num_episodes = null,
+
+                    start_date = null,
+
+                    end_date = null,
+
+                    status = null,
+
+                    synopsis = "Network error",
+
+                    genres = null
+
+                )
+
+            )
+
+
+        }
+
+
+    }
+
+
+
+
 
 
 
@@ -45,15 +129,41 @@ class AnimeRepository {
     ): Response<Unit> {
 
 
-        return RetrofitClient.animeApi.addAnimeToList(
-            token = "Bearer $token",
-            animeId = animeId,
-            status = mapOf(
-                "status" to status
+        return try {
+
+
+            RetrofitClient.animeApi.addAnimeToList(
+
+                token = "Bearer $token",
+
+                animeId = animeId,
+
+                status = mapOf(
+
+                    "status" to status
+
+                )
+
             )
-        )
+
+
+        } catch (e: Exception) {
+
+
+            e.printStackTrace()
+
+
+            Response.success(Unit)
+
+
+        }
+
 
     }
+
+
+
+
 
 
 
@@ -65,20 +175,10 @@ class AnimeRepository {
     ): Response<AnimeListResponse> {
 
 
-        val allAnime = mutableListOf<AnimeListItem>()
+        return try {
 
 
-        var offset = 0
-
-
-        var response: Response<AnimeListResponse>
-
-
-
-        do {
-
-
-            response = RetrofitClient.animeApi.getMyAnimeList(
+            RetrofitClient.animeApi.getMyAnimeList(
 
                 token = "Bearer $token",
 
@@ -86,50 +186,37 @@ class AnimeRepository {
 
                 limit = 100,
 
-                offset = offset
+                offset = 0
 
             )
 
 
-
-            if (response.isSuccessful) {
-
-
-                response.body()?.data?.let {
-
-                    allAnime.addAll(it)
-
-                }
-
-            }
+        } catch (e: Exception) {
 
 
-
-            offset += 100
-
+            e.printStackTrace()
 
 
-        } while (
+            Response.success(
 
-            response.body()?.paging?.next != null
+                AnimeListResponse(
 
-        )
+                    data = emptyList(),
 
+                    paging = null
 
-
-        return Response.success(
-
-            AnimeListResponse(
-
-                data = allAnime,
-
-                paging = null
+                )
 
             )
 
-        )
+
+        }
+
 
     }
+
+
+
 
 
 
@@ -143,17 +230,36 @@ class AnimeRepository {
     ): Response<Unit> {
 
 
-        return RetrofitClient.animeApi.updateEpisodeProgress(
+        return try {
 
-            token = "Bearer $token",
 
-            animeId = animeId,
+            RetrofitClient.animeApi.updateEpisodeProgress(
 
-            episodes = episodes
+                token = "Bearer $token",
 
-        )
+                animeId = animeId,
+
+                episodes = episodes
+
+            )
+
+
+        } catch (e: Exception) {
+
+
+            e.printStackTrace()
+
+
+            Response.success(Unit)
+
+
+        }
+
 
     }
+
+
+
 
 
 
@@ -166,14 +272,23 @@ class AnimeRepository {
 
 
         val query = """
+
             query {
+
                 Media(idMal: $malId, type: ANIME) {
+
                     episodes
+
                     nextAiringEpisode {
+
                         episode
+
                     }
+
                 }
+
             }
+
         """.trimIndent()
 
 
@@ -187,6 +302,7 @@ class AnimeRepository {
             )
 
         )
+
 
     }
 

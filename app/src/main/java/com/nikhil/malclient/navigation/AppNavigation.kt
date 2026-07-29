@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
+import com.nikhil.malclient.ui.screens.MyListScreen
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.nikhil.malclient.auth.TokenManager
@@ -191,23 +192,34 @@ fun AppNavigation(
 
         composable("mylist") {
 
+            val lifecycleOwner =
+                androidx.lifecycle.compose.LocalLifecycleOwner.current
+
+
+            androidx.lifecycle.LifecycleEventObserver { _, event ->
+
+                if (event ==
+                    androidx.lifecycle.Lifecycle.Event.ON_RESUME
+                ) {
+
+                    myListViewModel.loadMyList(
+                        tokenManager.getAccessToken() ?: ""
+                    )
+
+                }
+
+            }
 
 
             MyListScreen(
 
+                token = tokenManager.getAccessToken() ?: "",
 
-                token =
-                    tokenManager.getAccessToken()
-                        ?: "",
+                myListViewModel = myListViewModel,
 
-
-                myListViewModel =
-                    myListViewModel
-
+                navController = navController
 
             )
-
-
         }
 
 

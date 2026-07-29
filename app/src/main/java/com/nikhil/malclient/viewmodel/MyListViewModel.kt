@@ -1,17 +1,16 @@
 package com.nikhil.malclient.viewmodel
 
+import android.content.Context
+import android.util.Log
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nikhil.malclient.cache.MyListCache
 import com.nikhil.malclient.model.AnimeListResponse
 import com.nikhil.malclient.repository.AnimeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import android.util.Log
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateMapOf
-import android.content.Context
-import com.nikhil.malclient.cache.MyListCache
 
 
 class MyListViewModel(
@@ -19,47 +18,102 @@ class MyListViewModel(
 ) : ViewModel() {
 
 
-    private val repository = AnimeRepository()
+    private val repository =
+        AnimeRepository()
+
 
     private val cache =
         MyListCache(context)
 
 
-    val episodeUpdates = mutableStateMapOf<Int, Int>()
 
-    val airedEpisodesMap = mutableStateMapOf<Int, Int>()
+    val episodeUpdates =
+        mutableStateMapOf<Int, Int>()
+
+
+    val airedEpisodesMap =
+        mutableStateMapOf<Int, Int>()
+
+
+
+
+
     private val _allList =
         MutableStateFlow<AnimeListResponse?>(null)
 
-    val allList: StateFlow<AnimeListResponse?> = _allList
+    val allList: StateFlow<AnimeListResponse?> =
+        _allList
+
+
 
 
 
     private val _watchingList =
         MutableStateFlow<AnimeListResponse?>(null)
 
-    val watchingList: StateFlow<AnimeListResponse?> = _watchingList
+    val watchingList: StateFlow<AnimeListResponse?> =
+        _watchingList
+
+
 
 
 
     private val _completedList =
         MutableStateFlow<AnimeListResponse?>(null)
 
-    val completedList: StateFlow<AnimeListResponse?> = _completedList
+    val completedList: StateFlow<AnimeListResponse?> =
+        _completedList
+
+
 
 
 
     private val _planList =
         MutableStateFlow<AnimeListResponse?>(null)
 
-    val planList: StateFlow<AnimeListResponse?> = _planList
+    val planList: StateFlow<AnimeListResponse?> =
+        _planList
+
+
+
+
+
+    private val _onHoldList =
+        MutableStateFlow<AnimeListResponse?>(null)
+
+    val onHoldList: StateFlow<AnimeListResponse?> =
+        _onHoldList
+
+
+
+
+
+    private val _droppedList =
+        MutableStateFlow<AnimeListResponse?>(null)
+
+    val droppedList: StateFlow<AnimeListResponse?> =
+        _droppedList
+
+
+
+
+
+
 
     fun updateLocalEpisode(
         animeId: Int,
         episodes: Int
     ) {
-        episodeUpdates[animeId] = episodes
+
+        episodeUpdates[animeId] =
+            episodes
+
     }
+
+
+
+
+
 
 
     suspend fun refreshMyList(
@@ -71,12 +125,21 @@ class MyListViewModel(
 
 
         loadMyList(
+
             token = token,
+
             status = status,
+
             forceRefresh = true
+
         )
 
     }
+
+
+
+
+
 
 
 
@@ -84,19 +147,27 @@ class MyListViewModel(
         animeId: Int
     ) {
 
+
         if (airedEpisodesMap.containsKey(animeId)) {
+
             return
+
         }
+
 
 
         viewModelScope.launch {
 
-            val response = repository.getAniListEpisodes(
-                animeId
-            )
+
+            val response =
+                repository.getAniListEpisodes(
+                    animeId
+                )
+
 
 
             if (response.isSuccessful) {
+
 
                 val media =
                     response.body()
@@ -105,23 +176,21 @@ class MyListViewModel(
 
 
 
-
                 if (media != null) {
 
 
                     val airedEpisodes =
 
-                        if (media.nextAiringEpisode?.episode != null) {
-
+                        if (
+                            media.nextAiringEpisode?.episode != null
+                        ) {
 
                             media.nextAiringEpisode.episode!! - 1
 
-
-                        } else {
-
+                        }
+                        else {
 
                             media.episodes ?: 0
-
 
                         }
 
@@ -129,20 +198,30 @@ class MyListViewModel(
 
                     airedEpisodesMap[animeId] =
                         airedEpisodes.coerceAtLeast(0)
+
+
+
                     Log.d(
                         "AIR_EP_CHECK",
                         "$animeId = ${airedEpisodesMap[animeId]}"
                     )
 
-
-
                 }
 
             }
 
+
         }
 
+
     }
+
+
+
+
+
+
+
 
 
     fun loadMyList(
@@ -166,23 +245,17 @@ class MyListViewModel(
                 )
 
 
-            if (cachedList != null && !forceRefresh) {
+
+            if (
+                cachedList != null &&
+                !forceRefresh
+            ) {
 
 
-                when(status) {
-
-                    null -> _allList.value = cachedList
-
-                    "watching" ->
-                        _watchingList.value = cachedList
-
-                    "completed" ->
-                        _completedList.value = cachedList
-
-                    "plan_to_watch" ->
-                        _planList.value = cachedList
-
-                }
+                updateListState(
+                    status,
+                    cachedList
+                )
 
 
                 Log.d(
@@ -194,142 +267,133 @@ class MyListViewModel(
 
 
 
-            Log.d(
-                "LOAD_TEST",
-                "Loading API status=$status"
-            )
 
-            val response = repository.getMyAnimeList(
-                token,
-                status
-            )
+
+
+            val response =
+                repository.getMyAnimeList(
+                    token,
+                    status
+                )
+
+
 
 
             if(response.isSuccessful) {
 
 
-                val data = response.body()
-
-                val cacheKey =
-                    status ?: "all"
+                val data =
+                    response.body()
 
 
-                if (data != null) {
+
+                if(data != null) {
+
 
                     cache.saveList(
+
                         key = cacheKey,
+
                         data = data
+
                     )
 
 
-                    Log.d(
-                        "MYLIST_CACHE",
-                        "Saved cache $cacheKey size=${data.data.size}"
+
+                    val sortedData =
+                        data.copy(
+
+                            data =
+                                data.data.sortedByDescending {
+
+                                    it.list_status.updated_at ?: ""
+
+                                }
+
+                        )
+
+
+
+                    updateListState(
+                        status,
+                        sortedData
                     )
 
-                }
-
-                Log.d(
-                    "MYLIST_DEBUG",
-                    "Data size = ${data?.data?.size}"
-                )
-
-
-
-
-                val sortedData = data?.copy(
-
-                    data = data.data.sortedByDescending {
-
-                        it.list_status.updated_at ?: ""
-
-                    }
-
-                )
-
-                sortedData?.data?.take(5)?.forEach {
-
-                    Log.d(
-                        "SORTED_TEST",
-                        "${it.node.title} -> ${it.list_status.updated_at}"
-                    )
-
-                }
-
-                sortedData?.data?.forEach {
-
-                    Log.d(
-                        "SORTED_TEST",
-                        "${it.node.title} -> ${it.list_status.updated_at}"
-                    )
 
                 }
 
 
-                data?.data?.forEach {
-
-                    Log.d(
-                        "MAL_STATUS",
-                        "${it.node.title} -> ${it.list_status.status}"
-                    )
-
-                }
-
-
-
-                when(status) {
-
-
-                    null -> {
-
-                        _allList.value = sortedData
-
-                    }
-
-
-                    "watching" -> {
-
-                        _watchingList.value = sortedData
-
-                    }
-
-
-                    "completed" -> {
-
-                        _completedList.value = sortedData
-
-                    }
-
-
-                    "plan_to_watch" -> {
-
-                        _planList.value = sortedData
-
-                    }
-
-                }
-
-
-
-
-
-
-            } else {
+            }
+            else {
 
 
                 Log.e(
-
                     "MAL_LIST",
-
-                    "Error: ${response.code()}"
-
+                    "Error ${response.code()}"
                 )
+
 
             }
 
+
         }
 
+
     }
+
+
+
+
+
+
+
+
+    private fun updateListState(
+        status: String?,
+        data: AnimeListResponse
+    ) {
+
+
+        when(status) {
+
+
+            null ->
+                _allList.value = data
+
+
+
+            "watching" ->
+                _watchingList.value = data
+
+
+
+            "completed" ->
+                _completedList.value = data
+
+
+
+            "plan_to_watch" ->
+                _planList.value = data
+
+
+
+            "on_hold" ->
+                _onHoldList.value = data
+
+
+
+            "dropped" ->
+                _droppedList.value = data
+
+
+        }
+
+
+    }
+
+
+
+
 
 
 
@@ -349,15 +413,16 @@ class MyListViewModel(
         viewModelScope.launch {
 
 
-            val response = repository.updateEpisodeProgress(
+            val response =
+                repository.updateEpisodeProgress(
 
-                token,
+                    token,
 
-                animeId,
+                    animeId,
 
-                episodes
+                    episodes
 
-            )
+                )
 
 
 
@@ -365,29 +430,26 @@ class MyListViewModel(
 
 
                 Log.d(
-
                     "MAL_UPDATE",
-
                     "Episode updated successfully"
-
                 )
 
 
-            } else {
+            }
+            else {
 
 
                 Log.e(
-
                     "MAL_UPDATE",
-
-                    "Failed: ${response.code()}"
-
+                    "Failed ${response.code()}"
                 )
+
 
             }
 
 
         }
+
 
     }
 
