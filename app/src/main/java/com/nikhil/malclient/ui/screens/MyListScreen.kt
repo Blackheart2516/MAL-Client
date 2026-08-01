@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import com.nikhil.malclient.user.AnimeListManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -95,7 +96,10 @@ fun MyListScreen(
 
     }
 
-
+    val removedAnime =
+        AnimeListManager.removedAnime
+            .collectAsState()
+            .value
 
 
 
@@ -134,6 +138,16 @@ fun MyListScreen(
     val onHoldList by myListViewModel.onHoldList.collectAsState()
 
     val droppedList by myListViewModel.droppedList.collectAsState()
+
+    val statusMap =
+        AnimeListManager.statusMap.collectAsState().value
+    val statusOverride =
+        AnimeListManager.statusOverride
+            .collectAsState()
+            .value
+
+    val episodeMap =
+        AnimeListManager.episodeMap.collectAsState().value
 
 
 
@@ -235,11 +249,7 @@ fun MyListScreen(
 
 
             myListViewModel.refreshMyList(
-
-                token,
-
-                statuses[pagerState.currentPage]
-
+                token
             )
 
 
@@ -485,23 +495,91 @@ fun MyListScreen(
                         items = when(page) {
 
                             0 ->
-                                allList?.data ?: emptyList()
+                                allList?.data
+                                    ?.filter {
+                                        !removedAnime.contains(it.node.id)
+                                    }
+                                    ?: emptyList()
+
 
                             1 ->
-                                watchingList?.data ?: emptyList()
+                                watchingList?.data
+                                    ?.filter {
+
+                                        val currentStatus =
+                                            statusOverride[it.node.id]
+                                                ?: it.list_status.status
+
+
+                                        currentStatus == "watching" &&
+                                                !removedAnime.contains(it.node.id)
+
+                                    }
+                                    ?: emptyList()
+
 
                             2 ->
-                                completedList?.data ?: emptyList()
+                                completedList?.data
+                                    ?.filter {
+
+                                        val currentStatus =
+                                            statusOverride[it.node.id]
+                                                ?: it.list_status.status
+
+
+                                        currentStatus == "completed" &&
+                                                !removedAnime.contains(it.node.id)
+
+                                    }
+                                    ?: emptyList()
+
 
                             3 ->
-                                planList?.data ?: emptyList()
+                                planList?.data
+                                    ?.filter {
+
+                                        val currentStatus =
+                                            statusOverride[it.node.id]
+                                                ?: it.list_status.status
+
+
+                                        currentStatus == "plan_to_watch" &&
+                                                !removedAnime.contains(it.node.id)
+
+                                    }
+                                    ?: emptyList()
+
 
                             4 ->
-                                onHoldList?.data ?: emptyList()
+                                onHoldList?.data
+                                    ?.filter {
+
+                                        val currentStatus =
+                                            statusOverride[it.node.id]
+                                                ?: it.list_status.status
+
+
+                                        currentStatus == "on_hold" &&
+                                                !removedAnime.contains(it.node.id)
+
+                                    }
+                                    ?: emptyList()
+
 
                             else ->
-                                droppedList?.data ?: emptyList()
+                                droppedList?.data
+                                    ?.filter {
 
+                                        val currentStatus =
+                                            statusOverride[it.node.id]
+                                                ?: it.list_status.status
+
+
+                                        currentStatus == "dropped" &&
+                                                !removedAnime.contains(it.node.id)
+
+                                    }
+                                    ?: emptyList()
                         },
 
 
@@ -558,8 +636,10 @@ fun MyListScreen(
 
                         val watchedEpisodes =
 
-                            item.list_status
-                                .num_episodes_watched
+                            (
+                                    episodeMap[item.node.id]
+                                        ?: item.list_status.num_episodes_watched
+                                    )
                                 .coerceAtMost(
 
                                     if(airedEpisodes > 0)
@@ -587,6 +667,13 @@ fun MyListScreen(
 
 
                                     AnimeListSession.setAnimeStatus(
+
+                                        animeId = item.node.id,
+
+                                        status = item.list_status.status
+
+                                    )
+                                    AnimeListManager.updateStatus(
 
                                         animeId = item.node.id,
 
@@ -728,18 +815,18 @@ fun MyListScreen(
                                     Text(
 
                                         text =
-                                            item.list_status.status
+                                            (
+                                                    statusOverride[item.node.id]
+                                                        ?: item.list_status.status
+                                                    )
                                                 .replace("_", " ")
                                                 .uppercase(),
 
 
-                                        color =
-                                            Color(0xFF8FA8C8),
+                                        color = Color(0xFF8FA8C8),
 
 
-                                        fontSize =
-                                            11.sp
-
+                                        fontSize = 11.sp
 
                                     )
 
@@ -811,7 +898,13 @@ fun MyListScreen(
 
                                                 )
 
+                                                AnimeListManager.updateEpisodes(
 
+                                                    animeId = item.node.id,
+
+                                                    episodes = newEpisodeCount
+
+                                                )
 
                                                 myListViewModel.updateEpisodeProgress(
 

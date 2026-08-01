@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import com.nikhil.malclient.model.AnimeListResponse
 import android.util.Log
 import androidx.compose.runtime.mutableStateMapOf
+import com.nikhil.malclient.user.AnimeListManager
 class AnimeSearchViewModel : ViewModel() {
 
     private val repository = AnimeRepository()
@@ -26,7 +27,141 @@ class AnimeSearchViewModel : ViewModel() {
 
     val airedEpisodesMap = mutableStateMapOf<Int, Int>()
 
+    fun updateLocalMyList(
+        anime: Anime,
+        status: String
+    ) {
 
+        val currentList =
+            _userAnimeList.value
+                ?: return
+
+
+        val exists =
+            currentList.data.any {
+
+                it.node.id == anime.id
+
+            }
+
+
+        if (!exists) {
+
+
+            val updatedItem =
+                com.nikhil.malclient.model.AnimeListItem(
+
+                    node =
+                        com.nikhil.malclient.model.AnimeListAnime(
+
+                            id = anime.id,
+
+                            title = anime.title,
+
+                            main_picture = anime.main_picture,
+
+                            num_episodes = anime.num_episodes,
+
+                            start_date = anime.start_date,
+
+                            end_date = anime.end_date
+
+                        ),
+
+
+                    list_status =
+                        com.nikhil.malclient.model.ListStatus(
+
+                            status = status,
+
+                            score = 0,
+
+                            num_episodes_watched = 0,
+
+                            updated_at = null
+
+                        )
+
+                )
+
+
+
+            _userAnimeList.value =
+                currentList.copy(
+
+                    data =
+                        currentList.data + updatedItem
+
+                )
+
+
+        }
+
+    }
+
+    fun addToList(
+        token: String,
+        animeId: String,
+        status: String,
+        onResult: (Boolean) -> Unit
+    ) {
+
+        viewModelScope.launch {
+
+            try {
+
+
+                val response =
+                    repository.addAnimeToList(
+                        token = token,
+                        animeId = animeId,
+                        status = status
+                    )
+
+
+                Log.d(
+                    "SEARCH_ADD_LIST",
+                    "success=${response.isSuccessful}"
+                )
+
+
+                if(response.isSuccessful) {
+
+
+                    AnimeListManager.updateStatus(
+
+                        animeId = animeId.toInt(),
+
+                        status = status
+
+                    )
+
+
+                }
+
+
+                onResult(
+                    response.isSuccessful
+                )
+
+
+            }
+            catch (e: Exception) {
+
+
+                Log.e(
+                    "SEARCH_ADD_LIST",
+                    e.message ?: "error"
+                )
+
+
+                onResult(false)
+
+            }
+
+        }
+
+    }
     fun loadUserAnimeList(
         token: String
     ) {
@@ -38,7 +173,8 @@ class AnimeSearchViewModel : ViewModel() {
 
                 val response =
                     repository.getMyAnimeList(
-                        token = token
+                        token = token,
+                        limit = 1000
                     )
 
 
@@ -46,6 +182,21 @@ class AnimeSearchViewModel : ViewModel() {
                 if (response.isSuccessful) {
 
 
+
+
+                    Log.d(
+                        "SEARCH_MYLIST",
+                        "size=${response.body()?.data?.size}"
+                    )
+
+                    response.body()?.data?.forEach {
+
+                        Log.d(
+                            "SEARCH_MYLIST_ITEM",
+                            "${it.node.title} id=${it.node.id} status=${it.list_status.status}"
+                        )
+
+                    }
                     _userAnimeList.value =
                         response.body()
 
@@ -77,6 +228,12 @@ class AnimeSearchViewModel : ViewModel() {
 
         }
 
+    }
+
+    fun refreshUserAnimeList(
+        token: String
+    ) {
+        loadUserAnimeList(token)
     }
 
     fun search(

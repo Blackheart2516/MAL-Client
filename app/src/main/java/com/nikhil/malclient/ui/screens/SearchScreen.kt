@@ -7,6 +7,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import com.nikhil.malclient.utils.SearchHistoryManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -14,7 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.compose.runtime.derivedStateOf
 import androidx.lifecycle.viewmodel.compose.viewModel
-
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import com.nikhil.malclient.ui.components.AnimeCard
 import com.nikhil.malclient.viewmodel.AniListViewModel
 import com.nikhil.malclient.viewmodel.AnimeSearchViewModel
@@ -28,9 +33,23 @@ fun SearchScreen(
     myListViewModel: MyListViewModel
 ) {
 
-
+    val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val searchHistoryManager =
+        remember {
+            SearchHistoryManager(context)
+        }
 
+
+    var searchHistory by remember {
+
+        mutableStateOf(
+            searchHistoryManager.getHistory()
+        )
+
+    }
+    val keyboardController =
+        androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
 
     val viewModel: AnimeSearchViewModel = viewModel()
 
@@ -126,6 +145,7 @@ fun SearchScreen(
 
         }
 
+
     }
 
 
@@ -151,20 +171,174 @@ fun SearchScreen(
             value = query,
 
             onValueChange = {
-
                 query = it
-
             },
 
             label = {
-
                 Text("Search Anime")
-
             },
 
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+
+
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Search
+            ),
+
+
+            keyboardActions = KeyboardActions(
+
+                onSearch = {
+
+
+                    keyboardController?.hide()
+
+
+                    if(query.isNotBlank()) {
+
+
+                        val searchText =
+                            query.trim()
+
+
+
+                        searchHistoryManager.saveSearch(
+                            searchText
+                        )
+
+
+                        searchHistory =
+                            searchHistoryManager.getHistory()
+
+
+
+                        viewModel.search(
+
+                            token = token,
+
+                            query = searchText
+
+                        )
+
+
+                    }
+
+
+                }
+
+            )
+
 
         )
+
+        if(query.isEmpty() && searchHistory.isNotEmpty()) {
+
+
+            Column(
+
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 8.dp
+                    )
+
+            ) {
+
+
+                Row(
+
+                    modifier = Modifier.fillMaxWidth(),
+
+                    horizontalArrangement = Arrangement.SpaceBetween,
+
+                    verticalAlignment = Alignment.CenterVertically
+
+                ) {
+
+
+                    Text(
+
+                        text = "Recent Searches",
+
+                        style = MaterialTheme.typography.titleMedium
+
+                    )
+
+
+
+                    TextButton(
+
+                        onClick = {
+
+
+                            searchHistoryManager.clearHistory()
+
+
+                            searchHistory =
+                                emptyList()
+
+
+                        }
+
+                    ) {
+
+
+                        Text("Clear")
+
+                    }
+
+
+                }
+
+
+
+                searchHistory.forEach { history ->
+
+
+
+                    TextButton(
+
+                        onClick = {
+
+
+                            query = history
+
+
+                            viewModel.search(
+
+                                token = token,
+
+                                query = history
+
+                            )
+
+
+                        },
+
+                        modifier = Modifier.fillMaxWidth()
+
+                    ) {
+
+
+                        Text(
+
+                            text = "🔍 $history",
+
+                            modifier = Modifier.fillMaxWidth()
+
+                        )
+
+
+                    }
+
+
+                }
+
+
+            }
+
+
+        }
 
 
 
@@ -178,15 +352,29 @@ fun SearchScreen(
 
             onClick = {
 
-
                 if(query.isNotBlank()) {
+
+
+                    val searchText =
+                        query.trim()
+
+
+
+                    searchHistoryManager.saveSearch(
+                        searchText
+                    )
+
+
+                    searchHistory =
+                        searchHistoryManager.getHistory()
+
 
 
                     viewModel.search(
 
                         token = token,
 
-                        query = query
+                        query = searchText
 
                     )
 
@@ -216,14 +404,19 @@ fun SearchScreen(
 
 
 
+
             items(animeList) { anime ->
 
 
 
                 val airedEpisode by remember {
+
                     derivedStateOf {
+
                         aniListViewModel.airedEpisodesMap[anime.id]
+
                     }
+
                 }
 
 
@@ -247,13 +440,47 @@ fun SearchScreen(
 
                     },
 
+
                     userAnimeList = myList,
+
 
                     airedEpisode =
                         aniListViewModel.airedEpisodesMap[anime.id],
 
+
                     aniListSuccess =
-                        aniListViewModel.aniListStatusMap[anime.id]
+                        aniListViewModel.aniListStatusMap[anime.id],
+
+
+                    onAddToList = { selectedAnime ->
+
+
+                        viewModel.addToList(
+
+                            token = token,
+
+                            animeId = selectedAnime.id.toString(),
+
+                            status = "plan_to_watch"
+
+                        ) { success ->
+
+
+                            if(success) {
+
+
+                                viewModel.loadUserAnimeList(
+                                    token
+                                )
+
+
+                            }
+
+
+                        }
+
+
+                    }
 
                 )
 
@@ -262,7 +489,6 @@ fun SearchScreen(
 
 
         }
-
 
     }
 

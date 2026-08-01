@@ -9,24 +9,34 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import com.nikhil.malclient.user.AnimeListManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
+import kotlinx.coroutines.launch
 import com.nikhil.malclient.viewmodel.AnimeDetailsViewModel
 import com.nikhil.malclient.viewmodel.AniListViewModel
+import com.nikhil.malclient.viewmodel.MyListViewModel
 
 
 @Composable
 fun AnimeDetailsScreen(
+
     animeId: String,
-    token: String
+
+    token: String,
+
+    myListViewModel: MyListViewModel
+
 ) {
 
 
@@ -34,7 +44,6 @@ fun AnimeDetailsScreen(
         "DETAIL_SCREEN",
         "opened id=$animeId token=${token.isNotEmpty()}"
     )
-
 
 
     val viewModel: AnimeDetailsViewModel =
@@ -45,6 +54,28 @@ fun AnimeDetailsScreen(
     val anime =
         viewModel.anime.collectAsState().value
 
+    val episodeMap =
+        AnimeListManager.episodeMap
+            .collectAsState()
+            .value
+
+    val statusMap =
+        AnimeListManager.statusMap
+            .collectAsState()
+            .value
+
+    val removedAnime =
+        AnimeListManager.removedAnime
+            .collectAsState()
+            .value
+
+    val scope =
+        rememberCoroutineScope()
+
+    var statusMenuExpanded by remember {
+        mutableStateOf(false)
+    }
+
 
 
     val context =
@@ -54,23 +85,29 @@ fun AnimeDetailsScreen(
 
 
 
-    val aniListViewModel: AniListViewModel = viewModel(
+    val aniListViewModel: AniListViewModel =
+        viewModel(
 
-        factory = object : ViewModelProvider.Factory {
+            factory = object :
+                ViewModelProvider.Factory {
 
-            override fun <T : androidx.lifecycle.ViewModel> create(
-                modelClass: Class<T>
-            ): T {
 
-                return AniListViewModel(
-                    context
-                ) as T
+                override fun <T : androidx.lifecycle.ViewModel> create(
+                    modelClass: Class<T>
+                ): T {
+
+
+                    return AniListViewModel(
+                        context
+                    ) as T
+
+
+                }
+
 
             }
 
-        }
-
-    )
+        )
 
 
 
@@ -80,8 +117,11 @@ fun AnimeDetailsScreen(
 
 
         viewModel.loadAnimeDetails(
+
             token,
+
             animeId
+
         )
 
 
@@ -189,8 +229,6 @@ fun AnimeDetailsScreen(
 
     ) {
 
-
-
         Card(
 
             modifier =
@@ -238,11 +276,15 @@ fun AnimeDetailsScreen(
                 contentScale =
                     ContentScale.Fit
 
-
             )
 
 
         }
+
+
+
+
+
         Spacer(
             modifier = Modifier.height(16.dp)
         )
@@ -267,11 +309,9 @@ fun AnimeDetailsScreen(
 
 
 
-
         Spacer(
             modifier = Modifier.height(10.dp)
         )
-
 
 
 
@@ -290,27 +330,18 @@ fun AnimeDetailsScreen(
 
 
 
-
-
         Text(
 
             text =
-                "📺 Episodes: ${
+                "📺 Aired Episodes: ${
                     airedEpisodes
-                        ?: if (
-                            anime.num_episodes != null &&
-                            anime.num_episodes!! > 0
-                        )
-                            anime.num_episodes
-                        else
-                            "?"
+                        ?: anime.num_episodes
+                        ?: "?"
                 }",
 
             color = Color(0xFFBDBDBD)
 
         )
-
-
 
 
 
@@ -329,8 +360,6 @@ fun AnimeDetailsScreen(
 
 
 
-
-
         Spacer(
             modifier = Modifier.height(12.dp)
         )
@@ -339,26 +368,29 @@ fun AnimeDetailsScreen(
 
 
 
-
-
         val myStatus =
+            if (removedAnime.contains(anime.id)) {
 
-            AnimeListSession.getAnimeStatus(
+                null
 
-                anime.id
+            }
+            else {
 
-            )
+                statusMap[anime.id]
+                    ?: anime.my_list_status?.status
+                    ?: AnimeListSession.getAnimeStatus(anime.id)
 
+            }
 
 
         val myWatched =
+            episodeMap[anime.id]
+                ?: anime.my_list_status?.num_episodes_watched
+                ?: AnimeListSession.getWatchedEpisodes(anime.id)
 
-            AnimeListSession.getWatchedEpisodes(
-
-                anime.id
-
-            )
-
+        var watchedEpisodes by remember {
+            mutableIntStateOf(myWatched)
+        }
 
 
 
@@ -380,7 +412,6 @@ fun AnimeDetailsScreen(
 
                         status = "plan_to_watch"
 
-
                     ) { success ->
 
 
@@ -388,12 +419,19 @@ fun AnimeDetailsScreen(
                         if (success) {
 
 
-
                             AnimeListSession.setAnimeStatus(
 
                                 anime.id,
 
                                 "plan_to_watch"
+
+                            )
+
+                            AnimeListManager.updateStatus(
+
+                                animeId = anime.id,
+
+                                status = "plan_to_watch"
 
                             )
 
@@ -406,6 +444,28 @@ fun AnimeDetailsScreen(
                                 0
 
                             )
+
+                            AnimeListManager.updateEpisodes(
+
+                                animeId = anime.id,
+
+                                episodes = 0
+
+                            )
+
+
+
+                            scope.launch {
+
+
+                                myListViewModel.refreshMyList(
+
+                                    token
+
+                                )
+
+
+                            }
 
 
 
@@ -453,71 +513,397 @@ fun AnimeDetailsScreen(
 
 
         }
+        else {
+
+
+            Box {
+
+                Button(
+
+                    onClick = {
+
+                        statusMenuExpanded = true
+
+                    }
+
+                ) {
+
+                    Text(
+
+                        text =
+                            "My List: ${
+                                myStatus
+                                    .replace("_", " ")
+                                    .replaceFirstChar {
+
+                                        it.uppercase()
+
+                                    }
+                            }"
+
+                    )
+
+                }
 
 
 
+                DropdownMenu(
+
+                    expanded = statusMenuExpanded,
+
+                    onDismissRequest = {
+
+                        statusMenuExpanded = false
+
+                    }
+
+                ) {
+
+
+                    listOf(
+
+                        "plan_to_watch",
+
+                        "watching",
+
+                        "completed",
+
+                        "on_hold",
+
+                        "dropped"
+
+                    ).forEach { status ->
 
 
 
+                        DropdownMenuItem(
 
-        if (myStatus != null) {
+                            text = {
+
+                                Text(
+
+                                    status
+                                        .replace("_", " ")
+                                        .uppercase()
+
+                                )
+
+                            },
+
+
+                            onClick = {
+
+
+                                statusMenuExpanded = false
 
 
 
-            Text(
+                                AnimeListManager.updateStatus(
 
-                text =
-                    "My List: ${
-                        myStatus
-                            .replace("_", " ")
-                            .replaceFirstChar {
+                                    animeId = anime.id,
 
-                                it.uppercase()
+                                    status = status
+
+                                )
+
+
+
+                                viewModel.updateAnimeStatus(
+
+                                    token = token,
+
+                                    animeId = anime.id.toString(),
+
+                                    status = status
+
+                                )
+
 
                             }
-                    }",
-
-
-                color = Color(0xFF42A5F5)
-
-            )
-
-
-
-
-
-
-            Text(
-
-                text =
-                    "Watched: ${
-                        myWatched.coerceAtMost(
-
-                            airedEpisodes
-                                ?: myWatched
 
                         )
-                    } episodes",
 
 
-                color = Color(0xFFBDBDBD)
+                    }
 
+
+                }
+
+            }
+
+
+
+
+
+            Row(
+
+                modifier = Modifier.fillMaxWidth(),
+
+                horizontalArrangement = Arrangement.Center,
+
+                verticalAlignment = Alignment.CenterVertically
+
+            ) {
+
+
+                Button(
+
+                    onClick = {
+
+
+                        watchedEpisodes =
+                            (watchedEpisodes - 1)
+                                .coerceAtLeast(0)
+
+
+
+                        AnimeListManager.updateEpisodes(
+
+                            animeId = anime.id,
+
+                            episodes = watchedEpisodes
+
+                        )
+
+
+
+                        val newStatus =
+                            AnimeListManager.calculateStatus(
+
+                                watchedEpisodes = watchedEpisodes,
+
+                                totalEpisodes = anime.num_episodes ?: 0
+
+                            )
+
+
+
+                        AnimeListManager.updateStatus(
+
+                            animeId = anime.id,
+
+                            status = newStatus
+
+                        )
+
+
+
+                        viewModel.updateAnimeStatus(
+
+                            token = token,
+
+                            animeId = anime.id.toString(),
+
+                            status = newStatus
+
+                        )
+
+
+
+                        myListViewModel.updateEpisodeProgress(
+
+                            token = token,
+
+                            animeId = anime.id.toString(),
+
+                            episodes = watchedEpisodes
+
+                        )
+
+
+                    }
+
+                ) {
+
+                    Text("-")
+
+                }
+
+
+
+                Spacer(
+                    modifier = Modifier.width(12.dp)
+                )
+
+
+
+                Text(
+
+                    text =
+                        "Watched: $watchedEpisodes / ${airedEpisodes ?: "?"}" ,
+
+                    modifier = Modifier,
+
+                    maxLines = 1,
+
+
+
+                    color = Color(0xFFBDBDBD)
+
+                )
+
+
+
+                Spacer(
+                    modifier = Modifier.width(12.dp)
+                )
+
+
+
+                Button(
+
+                    onClick = {
+
+
+                        val maxEpisodes =
+                            airedEpisodes ?: anime.num_episodes ?: 0
+
+
+
+                        watchedEpisodes =
+                            if(maxEpisodes > 0) {
+
+                                (watchedEpisodes + 1)
+                                    .coerceAtMost(maxEpisodes)
+
+                            }
+                            else {
+
+                                watchedEpisodes + 1
+
+                            }
+
+
+
+                        AnimeListManager.updateEpisodes(
+
+                            animeId = anime.id,
+
+                            episodes = watchedEpisodes
+
+                        )
+
+                        val newStatus =
+                            AnimeListManager.calculateStatus(
+
+                                watchedEpisodes = watchedEpisodes,
+
+                                totalEpisodes = anime.num_episodes ?: 0
+
+                            )
+
+
+                        AnimeListManager.updateStatus(
+
+                            animeId = anime.id,
+
+                            status = newStatus
+
+                        )
+
+                        viewModel.updateAnimeStatus(
+
+                            token = token,
+
+                            animeId = anime.id.toString(),
+
+                            status = newStatus
+
+                        )
+
+
+
+                        myListViewModel.updateEpisodeProgress(
+
+                            token = token,
+
+                            animeId = anime.id.toString(),
+
+                            episodes = watchedEpisodes
+
+                        )
+
+
+                    }
+
+                ) {
+
+                    Text("+")
+
+                }
+
+
+            }
+
+
+            Spacer(
+                modifier = Modifier.height(12.dp)
             )
+
+
+            Button(
+
+                onClick = {
+
+
+                    viewModel.removeFromList(
+
+                        token = token,
+
+                        animeId = anime.id.toString()
+
+                    ) { success ->
+
+
+                        if(success) {
+
+
+                            Log.d(
+                                "REMOVE_LIST",
+                                "Removed ${anime.title}"
+                            )
+
+
+                        }
+
+
+                    }
+
+
+                },
+
+                colors = ButtonDefaults.buttonColors(
+
+                    containerColor = Color.Red
+
+                )
+
+            ) {
+
+
+                Text(
+
+                    text = "🗑 Remove from List"
+
+                )
+
+
+            }
 
 
         }
 
-
-
-
-
-
-
         Spacer(
 
-            modifier = Modifier.height(14.dp)
+            modifier =
+                Modifier.height(14.dp)
 
         )
+
+
+
+
+
         Card(
 
             modifier =

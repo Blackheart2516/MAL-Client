@@ -6,7 +6,8 @@ import com.nikhil.malclient.model.AnimeResponse
 import com.nikhil.malclient.model.AnimeListResponse
 import com.nikhil.malclient.model.AniListResponse
 import retrofit2.Response
-
+import com.nikhil.malclient.model.AnimeListStatusRequest
+import android.util.Log
 
 class AnimeRepository {
 
@@ -127,6 +128,10 @@ class AnimeRepository {
         animeId: String,
         status: String
     ): Response<Unit> {
+        Log.d(
+            "ADD_REQUEST",
+            "animeId=$animeId status=$status"
+        )
 
 
         return try {
@@ -138,11 +143,7 @@ class AnimeRepository {
 
                 animeId = animeId,
 
-                status = mapOf(
-
-                    "status" to status
-
-                )
+                status = status
 
             )
 
@@ -171,8 +172,9 @@ class AnimeRepository {
 
     suspend fun getMyAnimeList(
         token: String,
-        status: String? = null
-    ): Response<AnimeListResponse> {
+        status: String? = null,
+        limit: Int = 100
+    ):Response<AnimeListResponse> {
 
 
         return try {
@@ -184,7 +186,7 @@ class AnimeRepository {
 
                 status = status,
 
-                limit = 100,
+                limit = limit,
 
                 offset = 0
 
@@ -302,6 +304,39 @@ class AnimeRepository {
             )
 
         )
+
+
+    }
+
+    suspend fun removeAnimeFromList(
+        token: String,
+        animeId: String
+    ): Response<Unit> {
+
+
+        return try {
+
+
+            RetrofitClient.animeApi.removeAnimeFromList(
+
+                token = "Bearer $token",
+
+                animeId = animeId
+
+            )
+
+
+        }
+        catch(e: Exception) {
+
+
+            e.printStackTrace()
+
+
+            Response.success(Unit)
+
+
+        }
 
 
     }

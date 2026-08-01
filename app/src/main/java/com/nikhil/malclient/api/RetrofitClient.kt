@@ -5,13 +5,25 @@ import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import okhttp3.logging.HttpLoggingInterceptor
 
 
 
 object RetrofitClient {
 
 
+    private val logging =
+        HttpLoggingInterceptor().apply {
+
+            level =
+                HttpLoggingInterceptor.Level.BODY
+
+        }
+
+
     private val okHttpClient = OkHttpClient.Builder()
+
+        .addInterceptor(logging)
 
         .connectTimeout(
             30,

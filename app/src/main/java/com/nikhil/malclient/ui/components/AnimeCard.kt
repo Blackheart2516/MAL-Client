@@ -8,9 +8,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import androidx.compose.runtime.collectAsState
+import com.nikhil.malclient.user.AnimeListManager
 
 import com.nikhil.malclient.model.Anime
 import com.nikhil.malclient.model.AnimeListResponse
@@ -22,9 +25,18 @@ fun AnimeCard(
     onClick: () -> Unit,
     userAnimeList: AnimeListResponse?,
     airedEpisode: Int?,
-    aniListSuccess: Boolean?
+    aniListSuccess: Boolean?,
+    onAddToList: (Anime) -> Unit
 ) {
 
+    val removedAnime =
+        AnimeListManager.removedAnime
+            .collectAsState()
+            .value
+    val statusMap =
+        AnimeListManager.statusMap
+            .collectAsState()
+            .value
 
     Log.d(
         "EP_CHECK",
@@ -38,13 +50,27 @@ fun AnimeCard(
             ?.find {
                 it.node.id == anime.id
             }
+    Log.d(
+        "CARD_CHECK",
+        "${anime.title} searchId=${anime.id} myStatus=${myAnime?.list_status?.status}"
+    )
 
 
 
     val myStatus =
-        myAnime
-            ?.list_status
-            ?.status
+        if (removedAnime.contains(anime.id)) {
+
+            null
+
+        }
+        else {
+
+            statusMap[anime.id]
+                ?: myAnime
+                    ?.list_status
+                    ?.status
+
+        }
 
 
 
@@ -211,7 +237,7 @@ fun AnimeCard(
 
                         onClick = {
 
-                            // Add to list later
+                            onAddToList(anime)
 
                         },
 

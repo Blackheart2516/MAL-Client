@@ -117,21 +117,51 @@ class MyListViewModel(
 
 
     suspend fun refreshMyList(
-        token: String,
-        status: String? = null
+        token: String
     ) {
 
         episodeUpdates.clear()
 
 
         loadMyList(
-
             token = token,
-
-            status = status,
-
+            status = null,
             forceRefresh = true
+        )
 
+
+        loadMyList(
+            token = token,
+            status = "watching",
+            forceRefresh = true
+        )
+
+
+        loadMyList(
+            token = token,
+            status = "completed",
+            forceRefresh = true
+        )
+
+
+        loadMyList(
+            token = token,
+            status = "plan_to_watch",
+            forceRefresh = true
+        )
+
+
+        loadMyList(
+            token = token,
+            status = "on_hold",
+            forceRefresh = true
+        )
+
+
+        loadMyList(
+            token = token,
+            status = "dropped",
+            forceRefresh = true
         )
 
     }
@@ -284,7 +314,18 @@ class MyListViewModel(
 
                 val data =
                     response.body()
+                data?.data
+                    ?.filter {
+                        it.node.id == 16870
+                    }
+                    ?.forEach {
 
+                        Log.d(
+                            "CHECK_NARUTO_STATUS",
+                            "${it.node.title} => ${it.list_status.status}"
+                        )
+
+                    }
 
 
                 if(data != null) {

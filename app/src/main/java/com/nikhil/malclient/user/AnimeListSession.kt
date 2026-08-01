@@ -10,7 +10,6 @@ object AnimeListSession {
 
 
 
-
     fun setAnimeStatus(
         animeId: Int,
         status: String
@@ -19,7 +18,6 @@ object AnimeListSession {
         animeStatusMap[animeId] = status
 
     }
-
 
 
 
@@ -33,6 +31,27 @@ object AnimeListSession {
 
 
 
+    fun isAnimeInList(
+        animeId: Int
+    ): Boolean {
+
+        return animeStatusMap.containsKey(animeId)
+
+    }
+
+
+
+    fun removeAnime(
+        animeId: Int
+    ) {
+
+        animeStatusMap.remove(animeId)
+
+        watchedEpisodeMap.remove(animeId)
+
+    }
+
+
 
 
     fun setWatchedEpisodes(
@@ -43,7 +62,6 @@ object AnimeListSession {
         watchedEpisodeMap[animeId] = episodes
 
     }
-
 
 
 

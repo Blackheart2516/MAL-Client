@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.nikhil.malclient.auth.TokenManager
 import com.nikhil.malclient.ui.screens.AnimeDetailsScreen
+
 import com.nikhil.malclient.ui.screens.HomeScreen
 import com.nikhil.malclient.ui.screens.LoginScreen
 import com.nikhil.malclient.ui.screens.MyListScreen
@@ -241,14 +242,13 @@ fun AppNavigation(
 
             AnimeDetailsScreen(
 
-
                 animeId = animeId,
-
 
                 token =
                     tokenManager.getAccessToken()
-                        ?: ""
+                        ?: "",
 
+                myListViewModel = myListViewModel
 
             )
 

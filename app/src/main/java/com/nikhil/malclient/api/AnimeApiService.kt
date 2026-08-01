@@ -9,9 +9,11 @@ import retrofit2.http.Path
 import retrofit2.http.Header
 import retrofit2.http.Query
 import retrofit2.http.PUT
+import retrofit2.http.DELETE
 import com.nikhil.malclient.model.AnimeListResponse
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.Field
+import com.nikhil.malclient.model.AnimeListStatusRequest
 
 
 interface AnimeApiService {
@@ -31,14 +33,19 @@ interface AnimeApiService {
         @Header("Authorization") token: String,
         @Path("anime_id") animeId: String,
         @Query("fields") fields: String =
-            "synopsis,mean,num_episodes,status,main_picture,genres,studios"
+            "synopsis,mean,num_episodes,status,main_picture,genres,studios,my_list_status"
     ): Response<Anime>
 
+    @FormUrlEncoded
     @PUT("anime/{anime_id}/my_list_status")
     suspend fun addAnimeToList(
+
         @Header("Authorization") token: String,
+
         @Path("anime_id") animeId: String,
-        @Body status: Map<String, String>
+
+        @Field("status") status: String
+
     ): Response<Unit>
 
     @GET("users/@me/animelist")
@@ -57,4 +64,15 @@ interface AnimeApiService {
         @Path("anime_id") animeId: String,
         @Field("num_watched_episodes") episodes: Int
     ): Response<Unit>
+
+    @DELETE("anime/{anime_id}/my_list_status")
+    suspend fun removeAnimeFromList(
+
+        @Header("Authorization") token: String,
+
+        @Path("anime_id") animeId: String
+
+    ): Response<Unit>
 }
+
+

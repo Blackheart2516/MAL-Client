@@ -19,6 +19,21 @@ data class AnimeDetails(
 
     val start_date: String?,
 
-    val end_date: String?
+    val end_date: String?,
+
+
+    val my_list_status: MyListStatus?
+
+)
+
+
+
+data class MyListStatus(
+
+    val status: String?,
+
+    val num_episodes_watched: Int = 0,
+
+    val score: Int = 0
 
 )
